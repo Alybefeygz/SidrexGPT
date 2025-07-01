@@ -1,0 +1,1333 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+    --radius: 0.5rem;
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@keyframes scroll {
+  0% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+.animate-scroll {
+  animation: scroll 20s linear infinite;
+}
+
+/* Robot Mascot Styles */
+.robot-mascot-container {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(2.5);
+  width: 80px;
+  height: 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  animation: robotFloat 3s ease-in-out infinite;
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 0;
+  overflow: visible;
+}
+
+@keyframes robotFloat {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scale(2.5) translateY(0px);
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(2.5) translateY(-2px);
+  }
+}
+
+/* Excited bouncing animation for hover */
+@keyframes robotBounce {
+  0% {
+    transform: translate(-50%, -50%) scale(2.5) translateY(0px);
+  }
+  25% {
+    transform: translate(-50%, -50%) scale(2.52) translateY(-4px);
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(2.55) translateY(-8px);
+  }
+  75% {
+    transform: translate(-50%, -50%) scale(2.52) translateY(-4px);
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(2.5) translateY(0px);
+  }
+}
+
+/* Enhanced bouncing animation for third robot - more upward movement */
+@keyframes robotBounceThird {
+  0% {
+    transform: translate(-50%, -50%) scale(2.5) translateY(0px);
+  }
+  25% {
+    transform: translate(-50%, -50%) scale(2.52) translateY(-8px);
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(2.55) translateY(-16px);
+  }
+  75% {
+    transform: translate(-50%, -50%) scale(2.52) translateY(-8px);
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(2.5) translateY(0px);
+  }
+}
+
+/* Robot peeking animation - higher bounces to peek over shield */
+@keyframes robotPeekOverShield {
+  0% {
+    transform: translate(-50%, -50%) scale(2.5) translateY(0px);
+  }
+  25% {
+    transform: translate(-50%, -50%) scale(2.52) translateY(-10px);
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(2.55) translateY(-15px);
+  }
+  75% {
+    transform: translate(-50%, -50%) scale(2.52) translateY(-10px);
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(2.5) translateY(0px);
+  }
+}
+
+/* Robot Head */
+.robot-head {
+  position: relative;
+  width: 32px;
+  height: 26px;
+  background: #c0c0c0; /* Changed back from #FFC429 to #C0C0C0 */
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+/* Second Robot Head - with new color */
+.robot-head-second {
+  position: relative;
+  width: 32px;
+  height: 26px;
+  background: #6d71b6; /* New color for second robot head */
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+/* Third Robot Head - with yellow color */
+.robot-head-third {
+  position: relative;
+  width: 32px;
+  height: 26px;
+  background: #ffc429; /* Yellow color for third robot head */
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+/* Robot Antenna - positioned on top of the head with swaying animation */
+.robot-antenna {
+  position: absolute;
+  top: -21px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 16px;
+  height: 32px;
+  background-image: url("/images/antenna.png");
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  z-index: 5;
+  transform-origin: bottom center; /* Alt kısmı sabit kalacak */
+  animation: antennaSway 4s ease-in-out infinite;
+}
+
+/* Purple antenna for second robot */
+.robot-antenna-purple {
+  position: absolute;
+  top: -21px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 16px;
+  height: 32px;
+  background-image: url("/images/antenna-purple.png");
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  z-index: 5;
+  transform-origin: bottom center;
+  animation: antennaSway 4s ease-in-out infinite;
+}
+
+/* Yellow antenna for third robot */
+.robot-antenna-yellow {
+  position: absolute;
+  top: -21px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 16px;
+  height: 32px;
+  background-image: url("/images/antenna-yellow.png");
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  z-index: 5;
+  transform-origin: bottom center;
+  animation: antennaSway 4s ease-in-out infinite;
+}
+
+/* Antenna swaying animation - alt kısmı sabit, sağa sola sallanma */
+@keyframes antennaSway {
+  0% {
+    transform: translateX(-50%) rotate(-8deg);
+  }
+  25% {
+    transform: translateX(-50%) rotate(0deg);
+  }
+  50% {
+    transform: translateX(-50%) rotate(8deg);
+  }
+  75% {
+    transform: translateX(-50%) rotate(0deg);
+  }
+  100% {
+    transform: translateX(-50%) rotate(-8deg);
+  }
+}
+
+/* Faster antenna swaying for hover */
+@keyframes antennaSwayFast {
+  0% {
+    transform: translateX(-50%) rotate(-12deg);
+  }
+  25% {
+    transform: translateX(-50%) rotate(0deg);
+  }
+  50% {
+    transform: translateX(-50%) rotate(12deg);
+  }
+  75% {
+    transform: translateX(-50%) rotate(0deg);
+  }
+  100% {
+    transform: translateX(-50%) rotate(-12deg);
+  }
+}
+
+/* Robot Ears */
+.robot-ear {
+  position: absolute;
+  width: 4px;
+  height: 8px;
+  background: #17a2b8;
+  border-radius: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* Second Robot Ears - with new color */
+.robot-ear-second {
+  position: absolute;
+  width: 4px;
+  height: 8px;
+  background: #354198; /* New color for second robot ears */
+  border-radius: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* Third Robot Ears - with orange color */
+.robot-ear-third {
+  position: absolute;
+  width: 4px;
+  height: 8px;
+  background: #f7a708; /* Orange color for third robot ears */
+  border-radius: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.robot-ear-left {
+  left: -3px;
+  border-radius: 2px 0 0 2px;
+}
+
+.robot-ear-right {
+  right: -3px;
+  border-radius: 0 2px 2px 0;
+}
+
+/* Robot Face Screen */
+.robot-face {
+  position: relative;
+  width: 24px;
+  height: 16px;
+  background: #374151;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1px;
+}
+
+/* Second Robot Face Screen - with new color */
+.robot-face-second {
+  position: relative;
+  width: 24px;
+  height: 16px;
+  background: #354198; /* New color for second robot face screen */
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1px;
+}
+
+/* Third Robot Face Screen - with yellow color */
+.robot-face-third {
+  position: relative;
+  width: 24px;
+  height: 16px;
+  background: #ffe698; /* Yellow color for third robot face screen */
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1px;
+}
+
+/* Third robot eyes */
+.robot-third-eyes {
+  position: absolute;
+  width: 16px;
+  height: 6px;
+  background-image: url("/images/third-robot-eyes.png");
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  top: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  animation: thirdRobotFloat 3s ease-in-out infinite; /* Added animation */
+}
+
+/* Third robot hover eyes - circular eyes that appear on hover */
+.robot-third-hover-eyes {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: #31454f;
+  border-radius: 50%;
+  top: 4px;
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+  z-index: 4;
+}
+
+/* Blinking animation for third robot hover eyes */
+@keyframes thirdRobotEyeBlink {
+  0%,
+  45% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+  50%,
+  55% {
+    opacity: 1;
+    transform: scaleY(0.1);
+  }
+  60%,
+  100% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+
+.robot-third-hover-eyes.left {
+  left: 5px;
+}
+
+.robot-third-hover-eyes.right {
+  right: 5px;
+}
+
+/* Third robot mouth */
+.robot-third-mouth {
+  position: absolute;
+  width: 16px; /* Increased from 12px to 16px */
+  height: 8px; /* Increased from 6px to 8px */
+  background-image: url("/images/third-robot-mouth.png");
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  bottom: 1px; /* Changed from 3px to 1px to move it down */
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  animation: thirdRobotFloat 3s ease-in-out infinite; /* Added animation */
+}
+
+/* Shield for third robot - appears on hover */
+.robot-shield {
+  position: absolute;
+  top: 44%; /* Changed from 42% to 44% to move shield down by 2px */
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  width: 140px;
+  height: 120px;
+  background-image: url("/images/kalkan.png");
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  z-index: 15;
+  opacity: 0;
+  transition: all 0.4s ease-in-out;
+}
+
+/* Shield animation - appears and scales up on hover */
+@keyframes shieldAppear {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0) rotate(-10deg);
+  }
+  50% {
+    opacity: 0.8;
+    transform: translate(-50%, -50%) scale(1.1) rotate(5deg);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1) rotate(0deg);
+  }
+}
+
+/* Robot Eyes - Normal animation */
+.robot-eye {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: #17a2b8;
+  border-radius: 50%;
+  top: 4px;
+  animation: eyeTimeline 5s ease-in-out infinite;
+}
+
+/* Static Robot Eyes - for second robot - WHITE */
+.robot-eye-static {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: white; /* Changed to white */
+  border-radius: 50%;
+  top: 4px;
+  opacity: 1 !important;
+  transform: scaleY(1) !important;
+  animation: none !important;
+}
+
+/* Beyaz Yarım Yuvarlak Gözler - Sadece 2. robot için */
+.robot-eye-semicircle-second {
+  position: absolute;
+  width: 6px;
+  height: 3px;
+  background: white; /* White color for second robot only */
+  border-radius: 0 0 8px 8px;
+  top: 5px;
+  z-index: 1;
+  transform-origin: center;
+  transition: transform 0.5s ease-in-out;
+}
+
+.robot-eye-semicircle-second.left {
+  left: 4px;
+}
+
+.robot-eye-semicircle-second.right {
+  right: 4px;
+}
+
+/* Beyaz Yarım Yuvarlak Gözler - Resimdeki gibi */
+.robot-eye-semicircle {
+  position: absolute;
+  width: 6px; /* Genişlik */
+  height: 3px; /* Yükseklik - yarım yuvarlak için */
+  background: #746437; /* Changed from white to #746437 */
+  border-radius: 0 0 8px 8px; /* Alt kısmı yuvarlak, üst düz */
+  top: 5px; /* Yüzde ortalanmış pozisyon */
+  z-index: 1; /* Oval şeklin altında kalması için */
+  transform-origin: center; /* Set transform origin to center for rotation */
+  transition: transform 0.5s ease-in-out; /* Add smooth transition for rotation */
+}
+
+/* Mavi Oval Gözler - Beyaz yarım dairelerin üzerinde - Yavaş yukarı aşağı hareket */
+.robot-eye-oval {
+  position: absolute;
+  width: 8px; /* Genişlik - ovalin genişliği */
+  height: 4px; /* Yükseklik - ovalin yüksekliği */
+  background: #354198; /* Mavi/mor renk kodu */
+  border-radius: 50%; /* Tam oval şekil için */
+  top: 3px; /* Changed from 1px to 3px to move down */
+  z-index: 2; /* Beyaz yarım dairenin üzerinde görünmesi için */
+  animation: ovalFloat 3s ease-in-out infinite; /* Yavaş yukarı aşağı hareket */
+}
+
+/* Yellow oval eyes for third robot */
+.robot-eye-oval-third {
+  position: absolute;
+  width: 8px; /* Genişlik - ovalin genişliği */
+  height: 4px; /* Yükseklik - ovalin yüksekliği */
+  background: #ffe698; /* Yellow color for third robot */
+  border-radius: 50%; /* Tam oval şekil için */
+  top: 3px; /* Changed from 1px to 3px to move down */
+  z-index: 2; /* Beyaz yarım dairenin üzerinde görünmesi için */
+  animation: ovalFloat 3s ease-in-out infinite; /* Yavaş yukarı aşağı hareket */
+}
+
+.robot-eye-oval-third.left {
+  left: 3px;
+}
+
+.robot-eye-oval-third.right {
+  right: 3px;
+}
+
+/* White circular eyes for hover state - like left robot with blinking animation */
+.robot-eye-white {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: white;
+  border-radius: 50%;
+  top: 4px;
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+  z-index: 3;
+}
+
+.robot-eye-white.left {
+  left: 5px;
+}
+
+.robot-eye-white.right {
+  right: 5px;
+}
+
+/* White smile for hover state - like left robot */
+.robot-smile-white {
+  position: absolute;
+  bottom: 3px;
+  width: 6px;
+  height: 3px;
+  border: 1.5px solid white;
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  background: transparent;
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+  z-index: 3;
+}
+
+/* Battery Icon for Second Robot - Always visible, empty by default */
+.robot-battery {
+  position: absolute;
+  top: -10px; /* Above the circle */
+  right: -15px; /* To the right of the circle, slightly away */
+  width: 28px;
+  height: 16px;
+  opacity: 1; /* Always visible */
+  z-index: 10;
+  animation: batteryBlinkSlow 3s ease-in-out infinite; /* Default slow blinking */
+}
+
+/* Slower Battery Blinking Animation - 3 second cycle for normal state */
+@keyframes batteryBlinkSlow {
+  0% {
+    opacity: 1;
+  }
+  15% {
+    opacity: 1;
+  }
+  20% {
+    opacity: 0.3;
+  }
+  25% {
+    opacity: 0.3;
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Fast Battery Blinking Animation - 1 second cycle for hover/active states */
+@keyframes batteryBlinkFast {
+  0% {
+    opacity: 1;
+  }
+  10% {
+    opacity: 1;
+  }
+  15% {
+    opacity: 0;
+  }
+  20% {
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+  35% {
+    opacity: 1;
+  }
+  40% {
+    opacity: 0;
+  }
+  45% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  60% {
+    opacity: 1;
+  }
+  65% {
+    opacity: 0;
+  }
+  70% {
+    opacity: 0;
+  }
+  75% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Battery Body */
+.battery-body {
+  position: relative;
+  width: 22px;
+  height: 16px;
+  background: linear-gradient(135deg, #4338ca 0%, #6366f1 50%, #8b5cf6 100%);
+  border-radius: 3px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Battery Terminal (small protrusion on the right) */
+.battery-terminal {
+  position: absolute;
+  top: 4px;
+  right: -4px;
+  width: 4px;
+  height: 8px;
+  background: linear-gradient(135deg, #4338ca 0%, #6366f1 100%);
+  border-radius: 0 2px 2px 0;
+}
+
+/* Battery Fill (inner lighter area) - White by default (empty), fills on hover/active */
+.battery-fill {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  right: 2px;
+  bottom: 2px;
+  background: white; /* White background for empty battery */
+  border-radius: 1px;
+  opacity: 1; /* Visible by default - shows white empty battery */
+  transition: all 0.3s ease-in-out; /* Smooth transition when filling */
+}
+
+/* Oval gözlerin yukarı aşağı hareket animasyonu */
+@keyframes ovalFloat {
+  0% {
+    transform: translateY(0px); /* Başlangıç pozisyonu */
+  }
+  50% {
+    transform: translateY(-1px); /* 1 pixel yukarı - beyaz yarım daireyi kapatmayacak kadar az */
+  }
+  100% {
+    transform: translateY(0px); /* Başlangıç pozisyonuna geri dön */
+  }
+}
+
+/* Ağız için özel yukarı aşağı hareket animasyonu */
+@keyframes mouthFloat {
+  0% {
+    transform: translateX(-50%) translateY(0px); /* Başlangıç pozisyonu - merkezde */
+  }
+  50% {
+    transform: translateX(-50%) translateY(1px); /* 1 pixel aşağı */
+  }
+  100% {
+    transform: translateX(-50%) translateY(0px); /* Başlangıç pozisyonuna geri dön */
+  }
+}
+
+/* Robot Mouth - White oval for second robot */
+.robot-mouth-oval {
+  position: absolute;
+  width: 6px; /* Reduced from 8px to 6px */
+  height: 3px; /* Reduced from 4px to 3px */
+  background: white;
+  border-radius: 50%; /* Makes it a perfect oval */
+  bottom: 3px; /* Position at the bottom of the face */
+  left: 50%;
+  transform: translateX(-50%); /* Center horizontally */
+  z-index: 1;
+}
+
+/* Purple oval on top of the white mouth oval */
+.robot-mouth-overlay {
+  position: absolute;
+  width: 6px;
+  height: 3px;
+  background: #354198;
+  border-radius: 50%;
+  bottom: 2px;
+  left: 50%; /* Centered at 50% */
+  transform: translateX(-50%); /* Center horizontally */
+  z-index: 2;
+  animation: mouthFloat 3s ease-in-out infinite; /* Special mouth animation that preserves centering */
+}
+
+/* Pacifier for third robot */
+.robot-pacifier {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  background-image: url("/images/pacifier.png");
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  bottom: -6px; /* Changed from -2px to -6px to move it even lower */
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  animation: pacifierBob 2s ease-in-out infinite;
+}
+
+/* Animation for the pacifier */
+@keyframes pacifierBob {
+  0% {
+    transform: translateX(-50%) translateY(0);
+  }
+  50% {
+    transform: translateX(-50%) translateY(1px);
+  }
+  100% {
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* Animation for third robot eyes and mouth - reduced movement */
+@keyframes thirdRobotFloat {
+  0% {
+    transform: translateX(-50%) translateY(0px);
+  }
+  50% {
+    transform: translateX(-50%) translateY(-1px); /* Reduced from -2px to -1px */
+  }
+  100% {
+    transform: translateX(-50%) translateY(0px);
+  }
+}
+
+/* Z Letters Sequential Animation - 8 second cycle (faster) with fade-in effect */
+@keyframes zLetterSequential {
+  /* 0-12.5%: Hidden (0-1s) */
+  0%,
+  12.5% {
+    opacity: 0;
+  }
+  /* 12.5-25%: Fade in (1-2s) */
+  12.5% {
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+  /* 25-75%: Fully visible (2-6s) */
+  25%,
+  75% {
+    opacity: 1;
+  }
+  /* 75-87.5%: Fade out (6-7s) */
+  75% {
+    opacity: 1;
+  }
+  87.5% {
+    opacity: 0;
+  }
+  /* 87.5-100%: Hidden pause (7-8s) */
+  87.5%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Third Robot Hover Effects - Show shield and make robot peek */
+button:hover .robot-shield,
+button.third-robot-active .robot-shield {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+  animation: shieldAppear 0.4s ease-in-out;
+}
+
+/* Override third robot bounce animation when shield is active */
+button:hover .robot-mascot-container:has(.robot-head-third),
+button.third-robot-active .robot-mascot-container:has(.robot-head-third) {
+  animation: robotPeekOverShield 1.2s ease-in-out infinite !important;
+}
+
+/* Third Robot Hover Effects - Hide Z letters and eyes on hover, show circular eyes */
+button:hover .third-robot-z,
+button.third-robot-active .third-robot-z {
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+}
+
+button:hover .robot-third-eyes,
+button.third-robot-active .robot-third-eyes {
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+}
+
+button:hover .robot-third-hover-eyes,
+button.third-robot-active .robot-third-hover-eyes {
+  opacity: 1;
+  animation: thirdRobotEyeBlink 2s ease-in-out infinite;
+  transition: opacity 0.3s ease-in-out;
+}
+
+/* Ana Z - appears at 1s, fully visible at 2s, starts fading at 6s, gone at 7s */
+.third-robot-z > div:nth-child(1) {
+  opacity: 0;
+  animation: zLetterSequential 8s ease-in-out infinite;
+  animation-delay: 0s;
+}
+
+/* Orta Z - appears at 1.5s, fully visible at 2.5s, starts fading at 6.5s, gone at 7.5s */
+.third-robot-z > div:nth-child(3) {
+  opacity: 0;
+  animation: zLetterSequential 8s ease-in-out infinite;
+  animation-delay: 0.5s;
+}
+
+/* Üst Z - appears at 2s, fully visible at 3s, starts fading at 7s, gone at 8s */
+.third-robot-z > div:nth-child(2) {
+  opacity: 0;
+  animation: zLetterSequential 8s ease-in-out infinite;
+  animation-delay: 1s;
+}
+
+.robot-eye-semicircle.left {
+  left: 4px;
+}
+
+.robot-eye-semicircle.right {
+  right: 4px;
+}
+
+.robot-eye-oval.left {
+  left: 3px;
+}
+
+.robot-eye-oval.right {
+  right: 3px;
+}
+
+/* Robot Smile */
+.robot-smile {
+  position: absolute;
+  bottom: 3px;
+  width: 6px;
+  height: 3px;
+  border: 1.5px solid #17a2b8;
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  background: transparent;
+}
+
+/* Robot Hands - Normal animation */
+.robot-hands {
+  position: absolute;
+  top: calc(50% - 3px);
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 46px;
+  height: 25px;
+  background-image: url("/images/hands.png");
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  opacity: 0;
+  animation: handTimeline 5s ease-in-out infinite;
+  z-index: 10;
+}
+
+/* Normal Eye Animation Timeline - 5 seconds - Slower blinks, shorter open time */
+@keyframes eyeTimeline {
+  /* 0-0.5s: Eyes open (shorter) */
+  0%,
+  10% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+
+  /* 0.5-1.5s: Slow blink (longer) */
+  10% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+  15% {
+    opacity: 1;
+    transform: scaleY(0.1);
+  }
+  25% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+
+  /* 1.5-2s: Eyes open (shorter) */
+  25%,
+  40% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+
+  /* 2-3s: Slow blink again (longer) */
+  40% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+  45% {
+    opacity: 1;
+    transform: scaleY(0.1);
+  }
+  55% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+
+  /* 3-4s: Eyes open (shorter) */
+  55%,
+  79.9% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+
+  /* 4-5s: Eyes hidden (hands visible) */
+  80%,
+  99.9% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+
+/* Normal Hand Animation Timeline - 5 seconds */
+@keyframes handTimeline {
+  0%,
+  79.9% {
+    opacity: 0;
+  }
+  80% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  82% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.1) rotate(-15deg);
+  }
+  84% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.1) rotate(15deg);
+  }
+  86% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.1) rotate(-15deg);
+  }
+  88% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.1) rotate(15deg);
+  }
+  90% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.1) rotate(-15deg);
+  }
+  92% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.1) rotate(15deg);
+  }
+  94% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.1) rotate(-10deg);
+  }
+  96% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.1) rotate(10deg);
+  }
+  98% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1) rotate(0deg);
+  }
+  99.9% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Fast Eye Animation for Hover - 2 seconds - Slower blinks, shorter open time */
+@keyframes fastEyeTimeline {
+  /* 0-0.2s: Eyes open (shorter) */
+  0%,
+  10% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+
+  /* 0.2-0.6s: Slow blink (longer) */
+  10% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+  15% {
+    opacity: 1;
+    transform: scaleY(0.1);
+  }
+  25% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+
+  /* 0.6-0.8s: Eyes open (shorter) */
+  25%,
+  40% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+
+  /* 0.8-1.2s: Slow blink again (longer) */
+  40% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+  45% {
+    opacity: 1;
+    transform: scaleY(0.1);
+  }
+  55% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+
+  /* 1.2-1.4s: Eyes open (shorter) */
+  55%,
+  69.9% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+
+  /* 1.4-2s: Eyes hidden (hands visible) */
+  70%,
+  99.9% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+
+/* Fast Hand Animation for Hover - 2 seconds with longer waving */
+@keyframes fastHandTimeline {
+  0%,
+  69.9% {
+    opacity: 0;
+  }
+  /* Hands appear at 70% and wave until 100% (30% of timeline = 0.6s) */
+  70% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  72% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.1) rotate(-20deg);
+  }
+  74% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.1) rotate(20deg);
+  }
+  76% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.1) rotate(-20deg);
+  }
+  78% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.1) rotate(20deg);
+  }
+  80% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.1) rotate(-20deg);
+  }
+  82% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.1) rotate(20deg);
+  }
+  84% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.1) rotate(-20deg);
+  }
+  86% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.1) rotate(20deg);
+  }
+  88% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.1) rotate(-20deg);
+  }
+  90% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.1) rotate(20deg);
+  }
+  92% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.1) rotate(-15deg);
+  }
+  94% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.1) rotate(15deg);
+  }
+  96% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.1) rotate(-10deg);
+  }
+  98% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1) rotate(0deg);
+  }
+  99.9% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.robot-eye-left {
+  left: 5px;
+}
+
+.robot-eye-right {
+  right: 5px;
+}
+
+/* Hover Effects - Fast animations with bouncing */
+.robot-mascot-container:hover {
+  animation: robotBounce 1s ease-in-out infinite;
+}
+
+.robot-mascot-container:hover .robot-eye {
+  animation: fastEyeTimeline 2s ease-in-out infinite;
+}
+
+.robot-mascot-container:hover .robot-hands {
+  animation: fastHandTimeline 2s ease-in-out infinite;
+}
+
+.robot-mascot-container:hover .robot-antenna {
+  animation: antennaSwayFast 2s ease-in-out infinite;
+}
+
+.robot-mascot-container:hover .robot-antenna-yellow {
+  animation: antennaSwayFast 2s ease-in-out infinite;
+}
+
+/* Chat Active State - Same as hover effects but for when chat is open */
+.robot-mascot-container.chat-active {
+  animation: robotBounce 1s ease-in-out infinite;
+}
+
+.robot-mascot-container.chat-active .robot-eye {
+  animation: fastEyeTimeline 2s ease-in-out infinite;
+}
+
+.robot-mascot-container.chat-active .robot-hands {
+  animation: fastHandTimeline 2s ease-in-out infinite;
+}
+
+.robot-mascot-container.chat-active .robot-antenna {
+  animation: antennaSwayFast 2s ease-in-out infinite;
+}
+
+.robot-mascot-container.chat-active .robot-antenna-yellow {
+  animation: antennaSwayFast 2s ease-in-out infinite;
+}
+
+/* Second Robot Active State - For both hover and chat open */
+.robot-mascot-container.second-active {
+  animation: robotBounce 1s ease-in-out infinite !important;
+}
+
+.robot-mascot-container.second-active .robot-antenna-purple {
+  animation: antennaSwayFast 2s ease-in-out infinite !important;
+}
+
+/* Second Robot Hover Effects - Hide original elements and show white ones */
+button:hover .robot-eye-oval,
+button.second-robot-active .robot-eye-oval {
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+}
+
+button:hover .robot-mouth-overlay,
+button.second-robot-active .robot-mouth-overlay {
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+}
+
+button:hover .robot-eye-semicircle,
+button.second-robot-active .robot-eye-semicircle {
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+}
+
+button:hover .robot-mouth-oval,
+button.second-robot-active .robot-mouth-oval {
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+}
+
+/* Second Robot Hover Effects - Hide white semicircle eyes on hover */
+button:hover .robot-eye-semicircle-second,
+button.second-robot-active .robot-eye-semicircle-second {
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+}
+
+/* Show white eyes and smile on hover with special blinking animation that never hides eyes */
+button:hover .robot-eye-white,
+button.second-robot-active .robot-eye-white {
+  opacity: 1;
+  animation: whiteEyeBlink 2s ease-in-out infinite;
+}
+
+button:hover .robot-smile-white,
+button.second-robot-active .robot-smile-white {
+  opacity: 1;
+}
+
+/* Battery changes on hover/active state */
+button:hover .robot-battery,
+button.second-robot-active .robot-battery {
+  animation: batteryBlinkFast 1s ease-in-out infinite; /* Use faster animation on hover/active */
+}
+
+/* Fill battery on hover/active state */
+button:hover .battery-fill,
+button.second-robot-active .battery-fill {
+  background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 50%, #c4b5fd 100%);
+  opacity: 0.8;
+}
+
+/* Ensure normal state shows all elements */
+.robot-eye-oval,
+.robot-mouth-overlay,
+.robot-eye-semicircle,
+.robot-mouth-oval {
+  opacity: 1;
+  transition: opacity 0.3s ease-in-out;
+}
