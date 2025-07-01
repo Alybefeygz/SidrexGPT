@@ -268,9 +268,3 @@ Bu başarılı pilot uygulamadan sonra sistem diğer markalar için de kullanım
 - Düzenli güvenlik güncellemeleri
 - Veri sızıntısı koruması
 
-## 📄 Lisans
-
-Bu proje özel lisans altında lisanslanmıştır. Tüm hakları saklıdır.
-
----
-Developed with ❤️ by Swifty Software Team
