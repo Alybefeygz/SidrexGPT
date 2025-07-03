@@ -6,11 +6,40 @@ import { Navbar } from "@/components/Navbar"
 import ThirdRobot from "@/components/robots/third-robot/ThirdRobot"
 import PDFUploader from "@/components/PDFUploader"
 import { useAuth } from "@/contexts/AuthContext"
-import { useRobotPDFList } from "@/hooks/use-api"
+import { useRobotBySlug, useRobotPDFList } from "@/hooks/use-api"
 
 export default function ThirdRobotPage() {
   const { canEditPDF, getUserPermissions } = useAuth()
-  const { data: pdfs, loading: pdfsLoading, error: pdfsError, refetch } = useRobotPDFList(3) // robotId = 3
+  
+  // Robot'u slug ile al
+  const { data: robotData, loading: robotLoading, error: robotError } = useRobotBySlug('sidrexgpt-kids')
+  const robotId = robotData?.robot?.id
+  
+  // Robot ID varsa PDF'leri al
+  const { data: pdfs, loading: pdfsLoading, error: pdfsError, refetch } = useRobotPDFList(robotId)
+
+  // Loading state
+  if (robotLoading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-xl">Robot bilgileri yükleniyor...</div>
+        </div>
+      </div>
+    )
+  }
+
+  // Error state
+  if (robotError || !robotId) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-xl text-red-600">Robot bulunamadı!</div>
+          <div className="text-sm text-gray-500 mt-2">{robotError}</div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-white">
@@ -24,8 +53,8 @@ export default function ThirdRobotPage() {
               Ana Sayfa
             </Link>
             <span className="mx-2 text-gray-400">{">"}</span>
-            <Link href="/iletisim" className="text-gray-500 hover:text-gray-700">
-              SidrexGPT's
+            <Link href="/sidrexgpt" className="text-gray-500 hover:text-gray-700">
+              İletişim
             </Link>
             <span className="mx-2 text-gray-400">{">"}</span>
             <span className="text-gray-900">SidrexGPT Kids</span>
@@ -55,7 +84,7 @@ export default function ThirdRobotPage() {
               {canEditPDF() ? (
                 <PDFUploader 
                   activeColor="#FFC429" 
-                  robotId={3} 
+                  robotId={robotId}
                   initialPdfs={pdfs || []}
                   refetchPdfs={refetch}
                 />

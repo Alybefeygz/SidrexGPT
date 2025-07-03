@@ -49,7 +49,7 @@ export function AdminRoute({ children, requireAuth = false, requireAdmin = false
                 <Link href="/" className="text-slate-700 hover:text-slate-900">
                   Ürünlerimiz
                 </Link>
-                <Link href="/iletisim" className="text-slate-700 hover:text-slate-900">
+                <Link href="/sidrexgpt" className="text-slate-700 hover:text-slate-900">
                   SidrexGPT's
                 </Link>
                 <Link href="/yonetim" className="text-emerald-500 hover:text-emerald-600 font-medium">
@@ -116,7 +116,7 @@ export function AdminRoute({ children, requireAuth = false, requireAdmin = false
                 <Link href="/" className="text-slate-700 hover:text-slate-900">
                   Ürünlerimiz
                 </Link>
-                <Link href="/iletisim" className="text-slate-700 hover:text-slate-900">
+                <Link href="/sidrexgpt" className="text-slate-700 hover:text-slate-900">
                   SidrexGPT's
                 </Link>
                 <Link href="/yonetim" className="text-emerald-500 hover:text-emerald-600 font-medium">

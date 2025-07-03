@@ -24,7 +24,7 @@ export default function RobotManager() {
               isOtherChatOpen={activeChatRobot !== null && activeChatRobot !== "first"}
             />
             <Link 
-              href="/product/sidrexgpt" 
+              href="/sidrexgpt/ana-robot" 
               className="mt-8 text-cyan-500 hover:text-cyan-600 font-medium transition-colors z-10 relative bg-white py-2 px-4 rounded-md shadow-sm"
             >
               Detayını gör
@@ -36,7 +36,7 @@ export default function RobotManager() {
               isOtherChatOpen={activeChatRobot !== null && activeChatRobot !== "second"}
             />
             <Link 
-              href="/product/sidrexgpt-mag" 
+              href="/sidrexgpt/mag4ever" 
               className="mt-8 text-indigo-600 hover:text-indigo-700 font-medium transition-colors z-10 relative bg-white py-2 px-4 rounded-md shadow-sm"
             >
               Detayını gör
@@ -54,7 +54,7 @@ export default function RobotManager() {
               isOtherChatOpen={activeChatRobot !== null && activeChatRobot !== "third"}
             />
             <Link 
-              href="/product/sidrexgpt-kids" 
+              href="/sidrexgpt/imuntus-kids" 
               className="mt-8 text-yellow-500 hover:text-yellow-600 font-medium transition-colors z-10 relative bg-white py-2 px-4 rounded-md shadow-sm"
             >
               Detayını gör

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from robots.models import Robot, RobotPDF
+from robots.models import Robot, RobotPDF, Brand
 
 
 class RobotPDFSerializer(serializers.ModelSerializer):
@@ -38,12 +38,6 @@ class RobotSerializer(serializers.ModelSerializer):
         """Aktif PDF dosyalarını serialize et"""
         aktif_pdfs = obj.pdf_dosyalari.filter(is_active=True)
         return RobotPDFSerializer(aktif_pdfs, many=True).data
-
-
-class RobotCreateSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Robot
-        fields = ['name', 'product_name', 'brand']
 
 
 class RobotPDFCreateSerializer(serializers.ModelSerializer):

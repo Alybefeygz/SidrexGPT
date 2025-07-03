@@ -43,11 +43,10 @@ export function Navbar({ currentPage }: NavbarProps) {
                 Ürünlerimiz
               </Link>
               <Link 
-                href="/iletisim" 
-                className={currentPage === 'sidrexgpts' 
-                  ? "text-emerald-500 hover:text-emerald-600 font-medium" 
-                  : "text-slate-700 hover:text-slate-900"
-                }
+                href="/sidrexgpt"
+                className={`text-sm font-medium transition-colors hover:text-primary ${
+                  currentPage === 'products' ? 'text-black' : 'text-muted-foreground'
+                }`}
               >
                 SidrexGPT's
               </Link>
@@ -64,14 +63,6 @@ export function Navbar({ currentPage }: NavbarProps) {
 
             {/* Right Icons */}
             <div className="flex items-center space-x-4">
-              {/* Admin bilgileri - sadece giriş yapmış kullanıcılar için */}
-              {isAuthenticated && (
-                <span className="text-sm text-gray-600">
-                  {isAdmin ? 'Admin: ' : 'Hoş geldin, '}
-                  {user?.first_name || user?.username}
-                </span>
-              )}
-              
               <Button variant="ghost" size="icon">
                 <Search className="h-5 w-5" />
               </Button>
@@ -85,11 +76,16 @@ export function Navbar({ currentPage }: NavbarProps) {
                 </span>
               </Button>
               
-              {/* Giriş/Çıkış butonları */}
+              {/* Giriş/Çıkış butonları ve kullanıcı bilgisi */}
               {isAuthenticated ? (
-                <Button onClick={logout} variant="outline" size="sm">
-                  Çıkış Yap
-                </Button>
+                <>
+                  <div className="text-sm text-gray-600 mr-2">
+                    Hoş geldin, <span className="font-medium">{user?.first_name || user?.username}</span>
+                  </div>
+                  <Button onClick={logout} variant="outline" size="sm">
+                    Çıkış Yap
+                  </Button>
+                </>
               ) : (
                 <Button asChild variant="outline" size="sm">
                   <Link href="/yonetim">Giriş Yap</Link>

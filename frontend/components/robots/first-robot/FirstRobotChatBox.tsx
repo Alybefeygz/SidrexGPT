@@ -99,6 +99,17 @@ export default function FirstRobotChatBox({
               </div>
             </div>
           ))}
+          {isLoading && (
+            <div className="flex justify-start">
+              <div className="max-w-[80%] p-4 rounded-lg shadow-sm bg-white text-gray-700 rounded-bl-none">
+                <p className="text-sm flex items-center space-x-1">
+                  <span className="animate-bounce">.</span>
+                  <span className="animate-bounce" style={{ animationDelay: "0.2s" }}>.</span>
+                  <span className="animate-bounce" style={{ animationDelay: "0.4s" }}>.</span>
+                </p>
+              </div>
+            </div>
+          )}
           {/* Auto-scroll anchor */}
           <div ref={messagesEndRef} />
         </div>

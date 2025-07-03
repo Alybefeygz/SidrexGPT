@@ -67,7 +67,7 @@ export default function YonetimPage() {
                   <Link href="/" className="text-slate-700 hover:text-slate-900">
                     Ürünlerimiz
                   </Link>
-                  <Link href="/iletisim" className="text-slate-700 hover:text-slate-900">
+                  <Link href="/sidrexgpt" className="text-slate-700 hover:text-slate-900">
                     SidrexGPT's
                   </Link>
                   <Link href="/yonetim" className="text-emerald-500 hover:text-emerald-600 font-medium">
@@ -143,7 +143,7 @@ export default function YonetimPage() {
                         size="sm" 
                         style={{ backgroundColor: "#16B6C2", color: "white", border: "none" }}
                       >
-                        <Link href="/product/sidrexgpt">SidrexGPT</Link>
+                        <Link href="/sidrexgpt/ana-robot">SidrexGPT</Link>
                       </Button>
                       <Button 
                         asChild 
@@ -151,7 +151,7 @@ export default function YonetimPage() {
                         size="sm" 
                         style={{ backgroundColor: "#FFC429", color: "white", border: "none" }}
                       >
-                        <Link href="/product/sidrexgpt-kids">SidrexGPT Kids</Link>
+                        <Link href="/sidrexgpt/imuntus-kids">SidrexGPT Kids</Link>
                       </Button>
                       <Button 
                         asChild 
@@ -159,7 +159,7 @@ export default function YonetimPage() {
                         size="sm" 
                         style={{ backgroundColor: "#6D71B6", color: "white", border: "none" }}
                       >
-                        <Link href="/product/sidrexgpt-mag">SidrexGPT Mag</Link>
+                        <Link href="/sidrexgpt/mag4ever">SidrexGPT Mag</Link>
                       </Button>
                     </div>
                   </div>
@@ -210,7 +210,7 @@ export default function YonetimPage() {
                 <Link href="/" className="text-slate-700 hover:text-slate-900">
                   Ürünlerimiz
                 </Link>
-                <Link href="/iletisim" className="text-slate-700 hover:text-slate-900">
+                <Link href="/sidrexgpt" className="text-slate-700 hover:text-slate-900">
                   SidrexGPT's
                 </Link>
                 <Link href="/yonetim" className="text-emerald-500 hover:text-emerald-600 font-medium">
@@ -275,7 +275,7 @@ export default function YonetimPage() {
                       size="sm" 
                       style={{ backgroundColor: "#16B6C2", color: "white", border: "none" }}
                     >
-                      <Link href="/product/sidrexgpt">SidrexGPT</Link>
+                      <Link href="/sidrexgpt/ana-robot">SidrexGPT</Link>
                     </Button>
                     <Button 
                       asChild 
@@ -283,7 +283,7 @@ export default function YonetimPage() {
                       size="sm" 
                       style={{ backgroundColor: "#FFC429", color: "white", border: "none" }}
                     >
-                      <Link href="/product/sidrexgpt-kids">SidrexGPT Kids</Link>
+                      <Link href="/sidrexgpt/imuntus-kids">SidrexGPT Kids</Link>
                     </Button>
                     <Button 
                       asChild 
@@ -291,7 +291,7 @@ export default function YonetimPage() {
                       size="sm" 
                       style={{ backgroundColor: "#6D71B6", color: "white", border: "none" }}
                     >
-                      <Link href="/product/sidrexgpt-mag">SidrexGPT Mag</Link>
+                      <Link href="/sidrexgpt/mag4ever">SidrexGPT Mag</Link>
                     </Button>
                   </div>
                 </div>
@@ -354,7 +354,7 @@ export default function YonetimPage() {
               <Link href="/" className="text-slate-700 hover:text-slate-900">
                 Ürünlerimiz
               </Link>
-              <Link href="/iletisim" className="text-slate-700 hover:text-slate-900">
+              <Link href="/sidrexgpt" className="text-slate-700 hover:text-slate-900">
                 SidrexGPT's
               </Link>
               <Link href="/yonetim" className="text-emerald-500 hover:text-emerald-600 font-medium">

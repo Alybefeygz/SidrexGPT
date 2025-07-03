@@ -8,8 +8,7 @@ from rest_framework.reverse import reverse
 from robots.models import Robot, RobotPDF, Brand
 from .permissions import CanAccessRobotData, CanAccessBrandData
 from .serializers import (
-    RobotSerializer, RobotCreateSerializer, 
-    RobotPDFSerializer, RobotPDFCreateSerializer,
+    RobotSerializer, RobotPDFSerializer, RobotPDFCreateSerializer,
     ChatMessageSerializer
 )
 

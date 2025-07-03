@@ -288,33 +288,86 @@ class Robot(models.Model):
         return capabilities
     
     def process_chat_message(self, user, message):
-        """Chat mesajını işle ve cevap döndür"""
-        try:
-            # Kullanıcının marka kontrolü
-            if not user.is_staff and not user.is_superuser:
-                if not hasattr(user, 'profil') or not user.profil.brand:
-                    return {
-                        'error': 'Bu robota erişim yetkiniz yok.',
-                        'status': 403
-                    }
-                if self.brand != user.profil.brand:
-                    return {
-                        'error': 'Bu robota erişim yetkiniz yok.',
-                        'status': 403
-                    }
+        """
+        Chat mesajını işle ve yanıt döndür
+        
+        Args:
+            user: Mesajı gönderen kullanıcı
+            message: Gönderilen mesaj
             
-            # Basit bir echo cevabı - gerçek implementasyonda AI entegrasyonu olacak
-            response = {
-                'message': f"Mesajınızı aldım: {message}",
-                'status': 200
+        Returns:
+            Yanıt dict'i
+        """
+        from django.conf import settings
+        from robots.scripts.ai_request import OpenRouterAIHandler
+        import os
+        
+        # Marka API istek sayısını kontrol et
+        if not user.is_staff and not user.is_superuser:
+            if not hasattr(user, 'profil') or not user.profil.brand:
+                return {
+                    'error': 'API erişiminiz yok. Lütfen bir markaya bağlı olduğunuzdan emin olun.'
+                }
+            
+            brand = user.profil.brand
+            
+            # Paket süresi kontrolü
+            if brand.is_package_expired():
+                return {
+                    'error': f'Paket süreniz dolmuş. Lütfen paketinizi yenileyin. (Son {brand.remaining_days()} gün)'
+                }
+            
+            # İstek limiti kontrolü
+            if brand.is_limit_exceeded():
+                return {
+                    'error': f'API istek limitiniz dolmuş. Lütfen paketinizi yükseltin. ({brand.total_api_requests}/{brand.request_limit})'
+                }
+            
+            # API sayacını artır
+            brand.increment_api_count()
+            print(f"INFO Sidrex API request count incremented to: {brand.total_api_requests}/{brand.request_limit}")
+        
+        try:
+            # OpenRouter AI Handler'ı başlat
+            handler = OpenRouterAIHandler(
+                api_key=settings.OPENROUTER_API_KEY,
+                app_name="SidrexGPT"
+            )
+            
+            # Sistem promptunu hazırla
+            system_prompt = f"""Sen {self.name} adlı bir yapay zeka asistanısın. 
+            Görevin kullanıcılara yardımcı olmak ve sorularını yanıtlamak.
+            
+            Ürün: {self.product_name}
+            
+            Lütfen aşağıdaki kurallara uy:
+            1. Her zaman nazik ve profesyonel ol
+            2. Emin olmadığın konularda "Bilmiyorum" de
+            3. Yanıtların kısa ve öz olsun
+            4. Türkçe karakterleri doğru kullan
+            5. Emoji kullanma
+            """
+            
+            # Mesaj geçmişini hazırla
+            messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": message}
+            ]
+            
+            # Model döngüsü sistemi ile yanıt al
+            response = handler.chat_with_history(messages)
+            
+            return {
+                'message': message,
+                'response': response,
+                'success': True
             }
             
-            return response
-            
         except Exception as e:
+            print(f"ERROR Error in chat: {str(e)}")
             return {
-                'error': str(e),
-                'status': 500
+                'error': 'Üzgünüm, şu anda bir teknik sorun yaşıyorum. Lütfen daha sonra tekrar deneyin.',
+                'debug_error': str(e)
             }
     
     class Meta:

@@ -3,18 +3,47 @@
 import Link from "next/link"
 import { useState } from "react"
 import { Navbar } from "@/components/Navbar"
-import FirstRobot from "@/components/robots/first-robot/FirstRobot"
+import SecondRobot from "@/components/robots/second-robot/SecondRobot"
 import PDFUploader from "@/components/PDFUploader"
 import { useAuth } from "@/contexts/AuthContext"
-import { useRobotPDFList } from "@/hooks/use-api"
+import { useRobotBySlug, useRobotPDFList } from "@/hooks/use-api"
 
-export default function FirstRobotPage() {
+export default function SecondRobotPage() {
   const [activeChatRobot, setActiveChatRobot] = useState<boolean>(false)
   const { canEditPDF, getUserPermissions } = useAuth()
-  const { data: pdfs, loading: pdfsLoading, error: pdfsError, refetch } = useRobotPDFList(1) // robotId = 1
+  
+  // Robot'u slug ile al
+  const { data: robotData, loading: robotLoading, error: robotError } = useRobotBySlug('sidrexgpt-mag')
+  const robotId = robotData?.robot?.id
+  
+  // Robot ID varsa PDF'leri al
+  const { data: pdfs, loading: pdfsLoading, error: pdfsError, refetch } = useRobotPDFList(robotId)
 
   const handleChatToggle = (robotId: string, isOpen: boolean) => {
     setActiveChatRobot(isOpen)
+  }
+
+  // Loading state
+  if (robotLoading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-xl">Robot bilgileri yükleniyor...</div>
+        </div>
+      </div>
+    )
+  }
+
+  // Error state
+  if (robotError || !robotId) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-xl text-red-600">Robot bulunamadı!</div>
+          <div className="text-sm text-gray-500 mt-2">{robotError}</div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -29,11 +58,11 @@ export default function FirstRobotPage() {
               Ana Sayfa
             </Link>
             <span className="mx-2 text-gray-400">{">"}</span>
-            <Link href="/iletisim" className="text-gray-500 hover:text-gray-700">
+            <Link href="/sidrexgpt" className="text-gray-500 hover:text-gray-700">
               SidrexGPT's
             </Link>
             <span className="mx-2 text-gray-400">{">"}</span>
-            <span className="text-gray-900">SidrexGPT</span>
+            <span className="text-gray-900">SidrexGPT Mag</span>
           </nav>
         </div>
       </div>
@@ -41,14 +70,14 @@ export default function FirstRobotPage() {
       {/* Robot Section */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="flex flex-col items-center justify-center">
-          <h1 className="text-3xl font-bold mb-8" style={{ color: "#16B6C2" }}>SidrexGPT Asistanı</h1>
+          <h1 className="text-3xl font-bold mb-8" style={{ color: "#6D71B6" }}>SidrexGPT Mag Asistanı</h1>
           
           {/* Robot ve PDF Yükleyici bölümü */}
           <div className="w-full grid grid-cols-2 gap-4">
             {/* Sol taraf - Robot */}
             <div className="pl-32" style={{ marginTop: 'calc(10vh + 250px)' }}>
               <div className="flex flex-col items-center">
-                <FirstRobot
+                <SecondRobot
                   onChatToggle={handleChatToggle}
                   isOtherChatOpen={false}
                 />
@@ -59,8 +88,8 @@ export default function FirstRobotPage() {
             <div className="pr-4 pl-12" style={{ marginTop: 'calc(5vh - 50px)' }}>
               {canEditPDF() ? (
                 <PDFUploader 
-                  activeColor="#16B6C2" 
-                  robotId={1} 
+                  activeColor="#6D71B6" 
+                  robotId={robotId}
                   initialPdfs={pdfs || []}
                   refetchPdfs={refetch}
                 />

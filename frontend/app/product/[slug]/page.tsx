@@ -10,7 +10,6 @@ import { Card } from "@/components/ui/card"
 import SecondRobot from "@/components/robots/second-robot/SecondRobot"
 import ThirdRobot from "@/components/robots/third-robot/ThirdRobot"
 import PDFUploader from '@/components/PDFUploader'
-import { useRobotBySlug } from '@/hooks/use-api'
 
 // Product data - in a real app this would come from a database
 const productData = {
@@ -463,14 +462,18 @@ export default function ProductPage({ params }: ProductPageProps) {
   // Get product data based on slug
   const product = productData[params.slug as keyof typeof productData]
 
-  const { data: robot, loading, error, refetch } = useRobotBySlug(params.slug)
-
-  if (loading) return <div>Yükleniyor...</div>
-  if (error) return <div>Hata: {error}</div>
-  if (!robot) return <div>Robot bulunamadı.</div>
-
   if (!product) {
-    return <div>Ürün bulunamadı</div>
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">Ürün Bulunamadı</h1>
+          <p className="text-gray-600 mb-8">Aradığınız ürün mevcut değil.</p>
+          <Link href="/">
+            <Button>Ana Sayfaya Dön</Button>
+          </Link>
+        </div>
+      </div>
+    )
   }
 
   const nextImage = () => {
@@ -482,11 +485,7 @@ export default function ProductPage({ params }: ProductPageProps) {
   }
 
   const handleChatToggle = (robotId: string, isOpen: boolean) => {
-    if (isOpen) {
-      setActiveChatRobot(robotId)
-    } else {
-      setActiveChatRobot(null)
-    }
+    // Chat toggle logic
   }
 
   return (
@@ -508,7 +507,7 @@ export default function ProductPage({ params }: ProductPageProps) {
               <Link href="/" className="text-emerald-500 hover:text-emerald-600 font-medium">
                 Ürünlerimiz
               </Link>
-              <Link href="/iletisim" className="text-slate-700 hover:text-slate-900">
+              <Link href="/sidrexgpt" className="text-slate-700 hover:text-slate-900">
                 SidrexGPT's
               </Link>
               <Link href="/yonetim" className="text-slate-700 hover:text-slate-900">
@@ -788,9 +787,9 @@ export default function ProductPage({ params }: ProductPageProps) {
       )}
 
       <PDFUploader 
-        robotId={robot.id} 
-        initialPdfs={robot.pdf_dosyalari} 
-        refetchPdfs={refetch} 
+        robotId={product.id} 
+        initialPdfs={[]} 
+        refetchPdfs={() => {}}
       />
     </div>
   )
