@@ -1,4 +1,4 @@
-"""
+﻿"""
 URL configuration for core project.
 
 The `urlpatterns` list routes URLs to views. For more information please see:
@@ -27,8 +27,10 @@ def health_check(request):
             'admin': '/admin/',
             'api': '/api/',
             'auth': '/api/rest-auth/',
-            'profiles': '/api/profiller/',
-            'robots': '/api/robots/'
+            'profiles': '/api/profile/profilleri/',
+            'robots': '/api/robots/',
+            'brands': '/api/brands/',
+            'robot_pdfs': '/api/robot-pdfs/'
         }
     })
 

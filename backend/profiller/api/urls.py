@@ -1,22 +1,25 @@
-from django.urls import path, include
+﻿from django.urls import path, include
 from profiller.api.views import ProfilViewSet, ProfilDurumViewSet, ProfilFotoUpdateView, create_user_with_profile, update_user, delete_user, toggle_user_active
 from rest_framework.routers import DefaultRouter
 from rest_framework.response import Response
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.reverse import reverse
+from rest_framework.permissions import AllowAny
 from robots.api.views import BrandViewSet
 
-# Ana API Root View
+# Ana API Root View - Permission sorununu çöz
 @api_view(['GET'])
+@permission_classes([AllowAny])  # Herkese açık yap
 def api_root(request, format=None):
     return Response({
-        'robots': 'http://127.0.0.1:8000/api/robots/',
+        'robots': reverse('robot-list', request=request, format=format),
         'profile': reverse('profile-root', request=request, format=format),
         'brands': reverse('brand-list', request=request, format=format),
     })
 
 # Profile API Root View
 @api_view(['GET'])
+@permission_classes([AllowAny])  # Herkese açık yap
 def profile_root(request, format=None):
     return Response({
         'profilleri': reverse('profil-list', request=request, format=format),
