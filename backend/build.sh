@@ -25,6 +25,21 @@ echo "  - Running core Django migrations..."
 python manage.py migrate contenttypes --verbosity=2
 python manage.py migrate auth --verbosity=2
 python manage.py migrate sessions --verbosity=2
+
+# Sites framework için özel kontrol
+echo "  - Checking sites framework..."
+python manage.py shell -c "
+from django.db import connection
+with connection.cursor() as cursor:
+    try:
+        cursor.execute('SELECT 1 FROM django_site LIMIT 1')
+    except Exception as e:
+        if 'relation \"django_site\" does not exist' in str(e):
+            print('Sites table does not exist, forcing migration...')
+            from django.core.management import call_command
+            call_command('migrate', 'sites', '--fake-initial')
+"
+
 python manage.py migrate sites --verbosity=2
 python manage.py migrate admin --verbosity=2
 
