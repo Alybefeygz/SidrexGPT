@@ -16,8 +16,24 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import include, path
+from django.http import JsonResponse
+
+def health_check(request):
+    """Health check endpoint for Render.com"""
+    return JsonResponse({
+        'status': 'healthy',
+        'message': 'SidrexGPT Backend is running successfully!',
+        'api_endpoints': {
+            'admin': '/admin/',
+            'api': '/api/',
+            'auth': '/api/rest-auth/',
+            'profiles': '/api/profiller/',
+            'robots': '/api/robots/'
+        }
+    })
 
 urlpatterns = [
+    path('', health_check, name='health_check'),  # Root URL için health check
     path('admin/', admin.site.urls),
     path('api-auth/', include('rest_framework.urls')),  # Browsable API için
     path('api/rest-auth/', include('dj_rest_auth.urls')),  # Güncellenmiş paket kullanımı
