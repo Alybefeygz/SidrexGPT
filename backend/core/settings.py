@@ -35,7 +35,7 @@ if not SECRET_KEY:
 DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 'yes')
 
 # Allowed hosts - production için mutlaka belirtilmeli
-ALLOWED_HOSTS = ['localhost', '127.0.0.1'] + [h.strip() for h in os.getenv('ALLOWED_HOSTS', '').split(',') if h.strip()]
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'sidrexgpt-backend.onrender.com'] + [h.strip() for h in os.getenv('ALLOWED_HOSTS', '').split(',') if h.strip()]
 
 # ==============================================================================
 # OPENROUTER API CONFIGURATION
@@ -240,6 +240,11 @@ if DEBUG:
         "http://127.0.0.1:3000",
         "http://localhost:3000",
         "http://192.168.1.16:3000",
+    ])
+else:
+    # Production ortamı için Render.com URL'lerini ekle
+    CORS_ALLOWED_ORIGINS.extend([
+        "https://sidrexgpt-backend.onrender.com",
     ])
 
 # CSRF_TRUSTED_ORIGINS'i CORS listesiyle senkronize et
