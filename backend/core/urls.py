@@ -47,8 +47,15 @@ urlpatterns = [
     path('api/', include('robots.api.urls')),  # Brand API'si için ana URL'yi güncelle
 ]
 
+# Canlı (production) ve geliştirme (development) ortamları için 
+# statik ve medya dosyalarını sunmak üzere URL desenlerini genişlet.
 if settings.DEBUG:
+    # Geliştirme ortamında, Django'nun kendi sunucusu medya dosyalarını sunar.
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+else:
+    # Canlı ortamda, WhiteNoise statik dosyaları sunar.
+    # Bu ayar, `collectstatic` ile toplanan dosyaların doğru şekilde bulunmasını sağlar.
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
 # Add this line for serving static files in production
 urlpatterns += staticfiles_urlpatterns()
