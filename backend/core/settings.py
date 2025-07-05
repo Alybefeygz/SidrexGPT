@@ -118,18 +118,13 @@ WSGI_APPLICATION = 'core.wsgi.application'
 # DATABASE CONFIGURATION
 # ==============================================================================
 
+# Veritabanı yapılandırması dj-database-url ile ortam değişkeninden okunur.
+# Bu, Render gibi platformlarda esneklik sağlar.
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'postgres',
-        'USER': 'postgres',
-        'PASSWORD': os.getenv('DATABASE_PASSWORD', ''),
-        'HOST': 'db.pveresgsapxwknsljdbm.supabase.co',
-        'PORT': '5432',
-        'OPTIONS': {
-            'sslmode': 'require'
-        }
-    }
+    'default': dj_database_url.config(
+        conn_max_age=600,
+        ssl_require=os.getenv('DATABASE_SSL_REQUIRE', 'True').lower() == 'true'
+    )
 }
 
 # ==============================================================================
