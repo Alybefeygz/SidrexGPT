@@ -13,7 +13,7 @@ import { useToast } from '@/hooks/use-toast'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/contexts/AuthContext'
-import { api } from '@/lib/api'
+import { api } from '../../lib/api'
 
 interface Brand {
   id: number

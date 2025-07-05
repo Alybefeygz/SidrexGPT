@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Loader2, Building2, Calendar, BarChart3, Clock, CheckCircle2, AlertCircle, Edit3, Save, RefreshCw } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/contexts/AuthContext'
-import { api } from '@/lib/api'
+import { api } from '../../lib/api'
 
 interface User {
   id: number
