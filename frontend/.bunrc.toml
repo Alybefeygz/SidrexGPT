@@ -1,0 +1,20 @@
+[install]
+# Bun install ayarları
+auto = true
+exact = false
+# peer dependencies'leri otomatik yükle
+peer = true
+# production build için dev dependencies'leri dahil etme
+production = false
+
+[build]
+# Build ayarları
+target = "browser"
+format = "esm"
+
+# Module resolution ayarları
+[module]
+# Module resolution strategy
+resolution = "node"
+# External modules
+external = [] 
