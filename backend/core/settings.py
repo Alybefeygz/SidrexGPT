@@ -327,8 +327,10 @@ SESSION_COOKIE_SECURE = False if DEBUG else True
 REST_AUTH = {
     'USE_JWT': False,
     'SESSION_LOGIN': True,
-    'LOGIN_SERIALIZER': 'profiller.api.serializers.CustomLoginSerializer',
-    'USER_DETAILS_SERIALIZER': 'profiller.api.serializers.ProfilSerializer',
+    'USER_DETAILS_SERIALIZER': 'core.serializers.CustomUserDetailsSerializer',
+    'TOKEN_SERIALIZER': 'knox.serializers.AuthTokenSerializer',
+    'JWT_AUTH_COOKIE': 'sidrex-auth-cookie',
+    'JWT_AUTH_REFRESH_COOKIE': 'sidrex-refresh-cookie',
 }
 
 # CSRF ayarları
@@ -469,7 +471,7 @@ REST_FRAMEWORK = {
 REST_AUTH = {
     'USE_JWT': False, 
     'SESSION_LOGIN': True,
-    'USER_DETAILS_SERIALIZER': 'core.serializers.UserSerializer', 
+    'USER_DETAILS_SERIALIZER': 'core.serializers.CustomUserDetailsSerializer', 
     'TOKEN_SERIALIZER': 'knox.serializers.AuthTokenSerializer',
     'JWT_AUTH_COOKIE': 'sidrex-auth-cookie',
     'JWT_AUTH_REFRESH_COOKIE': 'sidrex-refresh-cookie',
