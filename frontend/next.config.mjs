@@ -10,6 +10,17 @@ const nextConfig = {
   // Sadece build'in geçip geçmediğini test etmek için temel ayar
   reactStrictMode: true,
 
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'hebbkx1anhila5yf.public.blob.vercel-storage.com',
+        port: '',
+        pathname: '/**',
+      },
+    ],
+  },
+
   // ESLint sadece warning'leri göster, build'i durdurma
   eslint: {
     ignoreDuringBuilds: false, // ESLint çalışsın ama build'i durdurmasın
