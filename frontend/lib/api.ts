@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 
 // Backend API base URL - Environment variables'tan alınır
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 
@@ -39,12 +39,12 @@ function getCookie(name: string): string | null {
 
 // Request interceptor to add CSRF token and handle content type
 apiClient.interceptors.request.use(
-  (config) => {
+  (config: AxiosRequestConfig) => {
     // Add CSRF token for unsafe methods (POST, PUT, DELETE, etc.)
     if (typeof window !== 'undefined' && config.method && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(config.method.toUpperCase())) {
       const csrfToken = getCookie('csrftoken');
       if (csrfToken) {
-        config.headers['X-CSRFToken'] = csrfToken;
+        config.headers['X-CSRFTOKEN'] = csrfToken;
       }
     }
 
@@ -69,17 +69,17 @@ apiClient.interceptors.request.use(
 
     return config;
   },
-  (error) => {
+  (error: AxiosError) => {
     return Promise.reject(error);
   }
 );
 
 // Response interceptor - error handling için
 apiClient.interceptors.response.use(
-  (response) => {
+  (response: AxiosResponse) => {
     return response;
   },
-  (error) => {
+  (error: AxiosError) => {
     // 401 Unauthorized durumunda token'ı temizle ve login sayfasına yönlendir
     if (error.response?.status === 401) {
       if (typeof window !== 'undefined') {
