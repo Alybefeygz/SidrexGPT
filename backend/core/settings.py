@@ -228,28 +228,27 @@ CSRF_TRUSTED_ORIGINS = []
 FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:3000')
 
 # CORS allowed origins
-CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', FRONTEND_URL).split(',')
+CORS_ALLOWED_ORIGINS = [
+    "https://sidrexgpt-frontend.onrender.com",  # Frontend URL'si
+    "https://sidrexgpt-backend.onrender.com",   # Backend URL'si
+]
 
 if DEBUG:
     # Geliştirme ortamı için ek izinler
-    if FRONTEND_URL not in CORS_ALLOWED_ORIGINS:
-        CORS_ALLOWED_ORIGINS.append(FRONTEND_URL)
-        
     CORS_ALLOWED_ORIGINS.extend([
         "http://localhost:8000",
         "http://127.0.0.1:8000",
         "http://127.0.0.1:3000",
         "http://localhost:3000",
-        "http://192.168.1.16:3000",
-    ])
-else:
-    # Production ortamı için Render.com URL'lerini ekle
-    CORS_ALLOWED_ORIGINS.extend([
-        "https://sidrexgpt-backend.onrender.com",
     ])
 
-# CSRF_TRUSTED_ORIGINS'i CORS listesiyle senkronize et
-CSRF_TRUSTED_ORIGINS.extend(CORS_ALLOWED_ORIGINS)
+# CSRF ayarları
+CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS
+CSRF_COOKIE_DOMAIN = ".onrender.com"  # Alt alan adlarını da kapsar
+CSRF_COOKIE_SAMESITE = 'None'  # Cross-site istekler için
+CSRF_COOKIE_SECURE = True  # HTTPS için
+CSRF_COOKIE_HTTPONLY = False  # JavaScript erişimi için
+CSRF_USE_SESSIONS = False  # Cookie kullan
 
 # CORS ayarları
 CORS_ALLOW_CREDENTIALS = True
@@ -274,13 +273,6 @@ CORS_ALLOW_HEADERS = [
 ]
 CORS_EXPOSE_HEADERS = ['content-type', 'x-csrftoken']
 CORS_PREFLIGHT_MAX_AGE = 86400  # 24 saat
-
-# CSRF ayarları
-CSRF_USE_SESSIONS = False  # Token'ı cookie'de sakla
-CSRF_COOKIE_HTTPONLY = False  # JavaScript erişimi için
-CSRF_COOKIE_SAMESITE = 'Lax'
-CSRF_COOKIE_SECURE = False if DEBUG else True
-CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS
 
 # ==============================================================================
 # REST FRAMEWORK CONFIGURATION
