@@ -17,6 +17,7 @@ interface Message {
   text: string
   isUser: boolean
   timestamp: Date
+  status?: 'loading' | 'ok' | 'error'
 }
 
 export default function SecondRobot({ onChatToggle, isOtherChatOpen, isFloating = false }: SecondRobotProps) {
@@ -28,12 +29,14 @@ export default function SecondRobot({ onChatToggle, isOtherChatOpen, isFloating 
       text: "Merhaba, ben **yorgun** **SidrexGPT**. Kaslarımı destekleyip **enerjimi** geri kazanmamı sağlayan **magnezyum** desteğiyle **yorgunluğu** geride bırakıyorum!",
       isUser: false,
       timestamp: new Date(),
+      status: 'ok'
     },
     {
       id: 2,
       text: "Size nasıl yardımcı olabilirim?",
       isUser: false,
       timestamp: new Date(),
+      status: 'ok'
     },
   ])
   const [inputValue, setInputValue] = useState("")
@@ -44,7 +47,7 @@ export default function SecondRobot({ onChatToggle, isOtherChatOpen, isFloating 
   const [isHovered, setIsHovered] = useState(false)
 
   // Robot Chat API integration
-  const { sendMessage: sendChatMessage, isLoading: chatLoading, error: chatError, clearError } = useRobotChat('sidrexgpt-mag')
+  const { sendMessage: sendChatMessage, loading: chatLoading } = useRobotChat('sidrexgpt-mag')
 
   // Close chat when other chat opens
   useEffect(() => {
@@ -62,38 +65,55 @@ export default function SecondRobot({ onChatToggle, isOtherChatOpen, isFloating 
       text: inputValue,
       isUser: true,
       timestamp: new Date(),
+      status: 'ok'
     }
 
-    // Add user message immediately
-    setMessages((prev) => [...prev, userMessage])
+    const loadingMessage: Message = {
+        id: Date.now() + 1,
+        text: "...",
+        isUser: false,
+        timestamp: new Date(),
+        status: 'loading',
+    }
+
+    setMessages((prev) => [...prev, userMessage, loadingMessage])
     const messageText = inputValue
     setInputValue("")
 
     try {
-      // Send message to backend
       const response = await sendChatMessage(messageText)
       
       if (response && response.robot_response) {
         const botResponse: Message = {
-          id: Date.now() + 1,
+          id: loadingMessage.id, // Use the same ID to update
           text: response.robot_response,
           isUser: false,
           timestamp: new Date(),
+          status: 'ok'
         }
-        setMessages((prev) => [...prev, botResponse])
+        setMessages((prev) => prev.map(msg => msg.id === loadingMessage.id ? botResponse : msg))
+      } else {
+        const errorResponse: Message = {
+            id: loadingMessage.id,
+            text: "Yanıt alınamadı, lütfen tekrar deneyin.",
+            isUser: false,
+            timestamp: new Date(),
+            status: 'error',
+        }
+        setMessages((prev) => prev.map(msg => msg.id === loadingMessage.id ? errorResponse : msg));
       }
     } catch (error: any) {
       console.error('Chat error:', error)
       toast.error(error.message || 'Mesaj gönderilemedi')
       
-      // Add error message
       const errorResponse: Message = {
-        id: Date.now() + 1,
+        id: loadingMessage.id,
         text: "Üzgünüm, şu anda bir sorun yaşıyorum. Lütfen daha sonra tekrar deneyin.",
         isUser: false,
         timestamp: new Date(),
+        status: 'error'
       }
-      setMessages((prev) => [...prev, errorResponse])
+      setMessages((prev) => prev.map(msg => msg.id === loadingMessage.id ? errorResponse : msg));
     }
   }
 

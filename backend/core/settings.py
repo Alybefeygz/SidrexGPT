@@ -119,11 +119,17 @@ WSGI_APPLICATION = 'core.wsgi.application'
 # ==============================================================================
 
 DATABASES = {
-    'default': dj_database_url.config(
-        default=f'sqlite:///{BASE_DIR}/db.sqlite3',
-        conn_max_age=600,
-        conn_health_checks=True
-    )
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'postgres',
+        'USER': 'postgres',
+        'PASSWORD': os.getenv('DATABASE_PASSWORD', ''),
+        'HOST': 'db.pveresgsapxwknsljdbm.supabase.co',
+        'PORT': '5432',
+        'OPTIONS': {
+            'sslmode': 'require'
+        }
+    }
 }
 
 # ==============================================================================
@@ -287,17 +293,16 @@ CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.SessionAuthentication',
         'knox.auth.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 10,
-    
-    # Tarih ve saat formatı
-    'DATETIME_FORMAT': "%d-%m-%Y %H:%M:%S",
+    'DEFAULT_THROTTLE_RATES': {
+        'chat': '5/minute',  # Chat istekleri için rate limiting
+    },
+    'DEFAULT_TIMEOUT': 60  # 60 saniye
 }
 
 # ==============================================================================
@@ -329,17 +334,6 @@ REST_AUTH = {
     'SESSION_LOGIN': True,
     'LOGIN_SERIALIZER': 'profiller.api.serializers.CustomLoginSerializer',
     'USER_DETAILS_SERIALIZER': 'profiller.api.serializers.ProfilSerializer',
-}
-
-# Rest Framework Authentication
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.SessionAuthentication',
-        'knox.auth.TokenAuthentication',
-    ],
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
-    ],
 }
 
 # CSRF ayarları
@@ -449,3 +443,13 @@ if os.getenv('EMAIL_HOST'):
     DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)
 else:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+# ==============================================================================
+# TIMEOUT SETTINGS
+# ==============================================================================
+
+# Gunicorn timeout settings
+GUNICORN_TIMEOUT = 120  # 120 saniye
+
+# Django request timeout
+REQUEST_TIMEOUT = 60  # 60 saniye

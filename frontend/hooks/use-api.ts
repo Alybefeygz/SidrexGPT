@@ -301,56 +301,31 @@ export function useRobotPDFActions() {
 
 // Robot Chat hook
 export function useRobotChat(robotSlug: string) {
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const abortControllerRef = useRef<AbortController | null>(null);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-    };
-  }, []);
-
-  const sendMessage = async (message: string, conversationId?: string) => {
-    if (!message.trim()) return null;
-
-    // Cancel any ongoing request
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-
-    // Create new abort controller
-    abortControllerRef.current = new AbortController();
-
-    setIsLoading(true);
+  
+  const sendMessage = async (message: string) => {
+    setLoading(true);
     setError(null);
-
+    
     try {
-      const response = await api.chat.sendMessage(robotSlug, message, conversationId);
+      const response = await api.chat.sendMessage(robotSlug, message);
       return response.data;
     } catch (err: any) {
-      // Handle abort error
-      if (err.name === 'AbortError' || err.code === 'ERR_CANCELED') {
-        console.log('Chat request cancelled');
-        return null;
+      let errorMessage = 'Bir hata oluştu. Lütfen tekrar deneyin.';
+      
+      if (err.code === 'ECONNABORTED') {
+        errorMessage = 'Bağlantı zaman aşımına uğradı. Lütfen tekrar deneyin.';
+      } else if (err.response?.status === 504) {
+        errorMessage = 'Sunucu yanıt vermedi. Lütfen tekrar deneyin.';
+      } else if (err.response?.data?.error) {
+        errorMessage = err.response.data.error;
       }
-
-      // Handle network errors  
-      if (err.response?.status === 499) {
-        const errorMessage = 'Bağlantı kesildi, lütfen tekrar deneyin';
-        setError(errorMessage);
-        throw new Error(errorMessage);
-      }
-
-      const errorMessage = err.response?.data?.error || 'Mesaj gönderilemedi';
+      
       setError(errorMessage);
       throw new Error(errorMessage);
     } finally {
-      setIsLoading(false);
-      abortControllerRef.current = null;
+      setLoading(false);
     }
   };
 
@@ -366,18 +341,14 @@ export function useRobotChat(robotSlug: string) {
   };
 
   const cancelRequest = () => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      setIsLoading(false);
-    }
+    // Cancel request logic
   };
 
   return {
+    loading,
+    error,
     sendMessage,
     getRobotInfo,
-    cancelRequest,
-    isLoading,
-    error,
-    clearError: () => setError(null)
+    cancelRequest
   };
 } 

@@ -11,6 +11,9 @@ from .serializers import (
     RobotSerializer, RobotPDFSerializer, RobotPDFCreateSerializer,
     ChatMessageSerializer
 )
+from rest_framework.throttling import UserRateThrottle
+from concurrent.futures import ThreadPoolExecutor
+import asyncio
 
 
 class RobotViewSet(viewsets.ModelViewSet):
@@ -579,84 +582,58 @@ def robot_detail_by_slug(request, slug, format=None):
             status=status.HTTP_404_NOT_FOUND
         )
 
+class ChatThrottle(UserRateThrottle):
+    rate = '5/minute'
+
 class RobotChatView(APIView):
     """
     Robot chat endpoint'i
     """
     renderer_classes = [JSONRenderer, BrowsableAPIRenderer]
     permission_classes = [IsAuthenticated]
+    throttle_classes = [ChatThrottle]
     serializer_class = ChatMessageSerializer
-    
+
     def get_robot_by_slug(self, slug):
-        """Slug'dan robotu bul"""
         try:
-            return Robot.objects.get(
-                name__icontains=slug.replace('-', ' ')
-            )
+            return Robot.objects.get(product_name__icontains=slug)
         except Robot.DoesNotExist:
             return None
     
-    def get(self, request, slug, format=None):
-        """Chat başlatma bilgilerini getir"""
-        robot = self.get_robot_by_slug(slug)
-        if not robot:
-            return Response(
-                {'detail': 'Robot bulunamadı.'},
-                status=status.HTTP_404_NOT_FOUND
-            )
-            
-        # Yetki kontrolü
-        if not request.user.is_staff and not request.user.is_superuser:
-            if not hasattr(request.user, 'profil') or not request.user.profil.brand:
-                return Response(
-                    {'detail': 'Bu robota erişim yetkiniz yok.'},
-                    status=status.HTTP_403_FORBIDDEN
-                )
-            if robot.brand != request.user.profil.brand:
-                return Response(
-                    {'detail': 'Bu robota erişim yetkiniz yok.'},
-                    status=status.HTTP_403_FORBIDDEN
-                )
-        
-        return Response({
-            'robot': RobotSerializer(robot).data,
-            'chat_info': {
-                'welcome_message': f"Merhaba! Ben {robot.name}. Size nasıl yardımcı olabilirim?",
-                'capabilities': robot.get_capabilities(),
-            }
-        })
-    
     def post(self, request, slug, format=None):
-        """Chat mesajı gönder"""
-        robot = self.get_robot_by_slug(slug)
-        if not robot:
+        try:
+            robot = self.get_robot_by_slug(slug)
+            if not robot:
+                return Response(
+                    {'error': 'Robot bulunamadı!'}, 
+                    status=status.HTTP_404_NOT_FOUND
+                )
+
+            message = request.data.get('message', '')
+            if not message:
+                return Response(
+                    {'error': 'Mesaj boş olamaz!'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Thread pool ile asenkron işlem
+            with ThreadPoolExecutor() as executor:
+                future = executor.submit(robot.process_chat_message, request.user, message)
+                try:
+                    response = future.result(timeout=55)  # 55 saniye timeout
+                    return Response(response)
+                except TimeoutError:
+                    return Response(
+                        {'error': 'İşlem zaman aşımına uğradı. Lütfen tekrar deneyin.'}, 
+                        status=status.HTTP_504_GATEWAY_TIMEOUT
+                    )
+
+        except Exception as e:
+            print(f"ERROR in chat: {str(e)}")
             return Response(
-                {'detail': 'Robot bulunamadı.'},
-                status=status.HTTP_404_NOT_FOUND
+                {'error': 'Bir hata oluştu. Lütfen tekrar deneyin.'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-            
-        # Yetki kontrolü
-        if not request.user.is_staff and not request.user.is_superuser:
-            if not hasattr(request.user, 'profil') or not request.user.profil.brand:
-                return Response(
-                    {'detail': 'Bu robota erişim yetkiniz yok.'},
-                    status=status.HTTP_403_FORBIDDEN
-                )
-            if robot.brand != request.user.profil.brand:
-                return Response(
-                    {'detail': 'Bu robota erişim yetkiniz yok.'},
-                    status=status.HTTP_403_FORBIDDEN
-                )
-        
-        serializer = self.serializer_class(data=request.data)
-        if serializer.is_valid():
-            # Chat işlemlerini gerçekleştir
-            response = robot.process_chat_message(
-                user=request.user,
-                message=serializer.validated_data['message']
-            )
-            return Response(response)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
  
