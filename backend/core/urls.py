@@ -17,6 +17,9 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import include, path
 from django.http import JsonResponse
+from django.conf import settings
+from django.conf.urls.static import static
+from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 
 def health_check(request):
     """Health check endpoint for Render.com"""
@@ -44,8 +47,8 @@ urlpatterns = [
     path('api/', include('robots.api.urls')),  # Brand API'si için ana URL'yi güncelle
 ]
 
-from django.conf import settings
-from django.conf.urls.static import static
-
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+# Add this line for serving static files in production
+urlpatterns += staticfiles_urlpatterns()
