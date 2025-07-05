@@ -44,7 +44,7 @@ apiClient.interceptors.request.use(
     if (typeof window !== 'undefined' && config.method && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(config.method.toUpperCase())) {
       const csrfToken = getCookie('csrftoken');
       if (csrfToken && config.headers) {
-        config.headers['X-CSRFTOKEN'] = csrfToken;
+        config.headers['X-CSRFToken'] = csrfToken;
       }
     }
 
