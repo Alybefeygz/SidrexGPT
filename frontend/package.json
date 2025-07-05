@@ -69,9 +69,7 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
-    "@types/node": "^22",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
+    "@types/node": "^22.16.0",
     "cross-env": "^7.0.3",
     "eslint": "^8",
     "eslint-config-next": "15.2.4",
