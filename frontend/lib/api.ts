@@ -1,4 +1,4 @@
-import axios, { AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
+import axios from 'axios';
 
 // Backend API base URL - Environment variables'tan alınır
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 
@@ -39,17 +39,17 @@ function getCookie(name: string): string | null {
 
 // Request interceptor to add CSRF token and handle content type
 apiClient.interceptors.request.use(
-  (config: AxiosRequestConfig) => {
+  (config) => {
     // Add CSRF token for unsafe methods (POST, PUT, DELETE, etc.)
     if (typeof window !== 'undefined' && config.method && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(config.method.toUpperCase())) {
       const csrfToken = getCookie('csrftoken');
-      if (csrfToken) {
+      if (csrfToken && config.headers) {
         config.headers['X-CSRFTOKEN'] = csrfToken;
       }
     }
 
     // Set default content type if not set
-    if (!config.headers['Content-Type']) {
+    if (config.headers && !config.headers['Content-Type']) {
       if (config.data instanceof FormData) {
         // FormData için content type'ı axios'un otomatik belirlemesine izin ver
         delete config.headers['Content-Type'];
@@ -59,27 +59,28 @@ apiClient.interceptors.request.use(
     }
 
     // Set Accept header
-    config.headers['Accept'] = 'application/json';
-
-    // Set additional headers for CORS
-    config.headers['X-Requested-With'] = 'XMLHttpRequest';
+    if (config.headers) {
+      config.headers['Accept'] = 'application/json';
+      // Set additional headers for CORS
+      config.headers['X-Requested-With'] = 'XMLHttpRequest';
+    }
     
     // Credentials'ı her zaman gönder
     config.withCredentials = true;
 
     return config;
   },
-  (error: AxiosError) => {
+  (error) => {
     return Promise.reject(error);
   }
 );
 
 // Response interceptor - error handling için
 apiClient.interceptors.response.use(
-  (response: AxiosResponse) => {
+  (response) => {
     return response;
   },
-  (error: AxiosError) => {
+  (error) => {
     // 401 Unauthorized durumunda token'ı temizle ve login sayfasına yönlendir
     if (error.response?.status === 401) {
       if (typeof window !== 'undefined') {
