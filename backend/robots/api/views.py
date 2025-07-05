@@ -315,17 +315,6 @@ class BrandViewSet(viewsets.ModelViewSet):
     # Sadece okuma ve güncelleme işlemlerine izin ver - CREATE işlemini engelle
     http_method_names = ['get', 'put', 'patch', 'post', 'head', 'options']
     
-    def get_permissions(self):
-        """Action'a göre farklı permission'lar"""
-        if self.action in ['list', 'retrieve']:
-            # Liste ve detay görüntüleme için login yeterli (markası olan kullanıcılar)
-            permission_classes = [IsAuthenticated]
-        else:
-            # Düzenleme işlemleri için admin gerekli
-            permission_classes = [IsAdminUser]
-        
-        return [permission() for permission in permission_classes]
-    
     def create(self, request, *args, **kwargs):
         """Yeni marka oluşturmayı engelle"""
         return Response({
