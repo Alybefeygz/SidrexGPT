@@ -3,7 +3,7 @@
 import { ChevronLeft, ChevronRight, Heart, Search, ShoppingCart, User } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -446,21 +446,27 @@ const productData = {
 }
 
 interface ProductPageProps {
-  params: {
+  params: Promise<{
     slug: string
-  }
+  }>
 }
 
 export default function ProductPage({ params }: ProductPageProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [quantity, setQuantity] = useState(1)
   const [activeTab, setActiveTab] = useState("description")
+  const [slug, setSlug] = useState<string>("")
   
   // Chat state for robot
   const [activeChatRobot, setActiveChatRobot] = useState<string | null>(null)
 
+  // Handle async params in useEffect for client component
+  useEffect(() => {
+    params.then(({ slug }) => setSlug(slug))
+  }, [params])
+
   // Get product data based on slug
-  const product = productData[params.slug as keyof typeof productData]
+  const product = slug ? productData[slug as keyof typeof productData] : null
 
   if (!product) {
     return (
@@ -765,7 +771,7 @@ export default function ProductPage({ params }: ProductPageProps) {
       </div>
 
       {/* Floating Second Robot for mag4ever and related products */}
-      {(params.slug === 'mag4ever' || product.name === 'Mag4Ever') && (
+      {(slug === 'mag4ever' || product.name === 'Mag4Ever') && (
         <div className="fixed bottom-6 right-6 z-50">
           <SecondRobot
             onChatToggle={handleChatToggle}
@@ -776,7 +782,7 @@ export default function ProductPage({ params }: ProductPageProps) {
       )}
 
       {/* Floating Third Robot for imuntus-kids and related products */}
-      {(params.slug === 'imuntus-kids' || product.name === 'Imuntus Kids') && (
+      {(slug === 'imuntus-kids' || product.name === 'Imuntus Kids') && (
         <div className="fixed bottom-6 right-6 z-50">
           <ThirdRobot
             onChatToggle={handleChatToggle}
