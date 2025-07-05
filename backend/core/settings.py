@@ -448,3 +448,81 @@ GUNICORN_TIMEOUT = 120  # 120 saniye
 
 # Django request timeout
 REQUEST_TIMEOUT = 60  # 60 saniye
+
+# ==============================================================================
+# DJANGO REST AUTH & ALLAUTH CONFIGURATION
+# ==============================================================================
+
+SITE_ID = 1
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework.authentication.SessionAuthentication',
+        'knox.auth.TokenAuthentication',
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),
+}
+
+# dj-rest-auth ayarları
+REST_AUTH = {
+    'USE_JWT': False, 
+    'SESSION_LOGIN': True,
+    'USER_DETAILS_SERIALIZER': 'core.serializers.UserSerializer', 
+    'TOKEN_SERIALIZER': 'knox.serializers.AuthTokenSerializer',
+    'JWT_AUTH_COOKIE': 'sidrex-auth-cookie',
+    'JWT_AUTH_REFRESH_COOKIE': 'sidrex-refresh-cookie',
+}
+
+# Knox ayarları (token ömrü vb.)
+REST_KNOX = {
+  'SECURE_HASH_ALGORITHM': 'cryptography.hazmat.primitives.hashes.SHA512',
+  'AUTH_TOKEN_CHARACTER_LENGTH': 64,
+  'TOKEN_TTL': timedelta(hours=12),
+  'USER_SERIALIZER': 'knox.serializers.UserSerializer',
+  'TOKEN_LIMIT_PER_USER': 10,
+  'AUTO_REFRESH': True,
+}
+
+# Email Backend (development için console'a yazdırır)
+if DEBUG:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+else:
+    # Production için gerçek bir email servisi (örn: SendGrid, Mailgun) ayarlanmalıdır.
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    # EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASSWORD etc. should be configured here.
+
+ACCOUNT_AUTHENTICATION_METHOD = 'email'
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_UNIQUE_EMAIL = True
+ACCOUNT_USERNAME_REQUIRED = False
+ACCOUNT_EMAIL_VERIFICATION = 'none' # 'mandatory' veya 'optional' olarak değiştirilebilir
+
+
+# ==============================================================================
+# CORS & COOKIE SETTINGS FOR PRODUCTION
+# ==============================================================================
+
+# Tarayıcının frontend'den gelen isteklere izin vermesi için
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://sidrexgpt-frontend.onrender.com",
+]
+
+# Cookie'lerin domainler arası gönderilebilmesi için
+CORS_ALLOW_CREDENTIALS = True
+
+# Django'nun hangi domain'ler için cookie oluşturabileceği
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://sidrexgpt-frontend.onrender.com",
+]
+
+# Oturum cookie'lerinin ayarları
+SESSION_COOKIE_SAMESITE = 'None'
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SAMESITE = 'None'
+CSRF_COOKIE_SECURE = True
