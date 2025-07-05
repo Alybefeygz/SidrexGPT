@@ -92,7 +92,6 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'allauth.account.middleware.AccountMiddleware',
-    'dj_rest_auth.middleware.EnsureCsrfCookieMiddleware',
 ]
 
 ROOT_URLCONF = 'core.urls'
