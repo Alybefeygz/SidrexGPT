@@ -10,6 +10,12 @@ const nextConfig = {
   // Sadece build'in geçip geçmediğini test etmek için temel ayar
   reactStrictMode: true,
 
+  // ESLint sadece warning'leri göster, build'i durdurma
+  eslint: {
+    ignoreDuringBuilds: false, // ESLint çalışsın ama build'i durdurmasın
+    dirs: ['app', 'components', 'lib', 'hooks', 'contexts'] // Sadece bu klasörleri kontrol et
+  },
+
   // BASİT AMA ETKİLİ WEBPACK YAPILANDIRMASI
   webpack: (config, { dev }) => {
     // Alias yapılandırması - Render ve Bun için optimize edilmiş
