@@ -1,3 +1,10 @@
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// ES Modüllerinde __dirname karşılığı
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Build optimizasyonları
@@ -20,7 +27,6 @@ const nextConfig = {
   },
 
   // Performance optimizasyonları
-  // swcMinify: true,
   compress: true,
 
   // Security headers
@@ -29,48 +35,20 @@ const nextConfig = {
       {
         source: '/(.*)',
         headers: [
-          {
-            key: 'X-Frame-Options',
-            value: 'SAMEORIGIN', // İframe kullanımına izin ver
-          },
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff',
-          },
-          {
-            key: 'X-XSS-Protection',
-            value: '1; mode=block',
-          },
-          {
-            key: 'Referrer-Policy',
-            value: 'strict-origin-when-cross-origin',
-          },
-          {
-            key: 'Access-Control-Allow-Credentials',
-            value: 'true',
-          },
-          {
-            key: 'Access-Control-Allow-Origin',
-            value: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
-          },
-          {
-            key: 'Access-Control-Allow-Methods',
-            value: 'GET,POST,PUT,DELETE,OPTIONS',
-          },
-          {
-            key: 'Access-Control-Allow-Headers',
-            value: 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version',
-          },
+          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'X-XSS-Protection', value: '1; mode=block' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          { key: 'Access-Control-Allow-Credentials', value: 'true' },
+          { key: 'Access-Control-Allow-Origin', value: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000' },
+          { key: 'Access-Control-Allow-Methods', value: 'GET,POST,PUT,DELETE,OPTIONS' },
+          { key: 'Access-control-allow-headers', value: 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version' },
         ],
       },
       {
-        // İframe sayfaları için özel ayarlar
         source: '/iframe/(.*)',
         headers: [
-          {
-            key: 'X-Frame-Options',
-            value: 'ALLOWALL', // İframe sayfaları için tam izin
-          },
+          { key: 'X-Frame-Options', value: 'ALLOWALL' },
         ],
       },
     ]
@@ -88,6 +66,15 @@ const nextConfig = {
     output: 'standalone',
     productionBrowserSourceMaps: false,
   }),
+
+  // YOL KISAYOLU (PATH ALIAS) İÇİN WEBPACK YAPILANDIRMASI
+  webpack: (config) => {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@': path.resolve(__dirname),
+    };
+    return config;
+  },
 }
 
-export default nextConfig
+export default nextConfig;
