@@ -40,11 +40,13 @@ function getCookie(name: string): string | null {
 // Request interceptor to add CSRF token and handle content type
 apiClient.interceptors.request.use(
   (config) => {
-    // Add CSRF token for unsafe methods (POST, PUT, DELETE, etc.)
-    if (typeof window !== 'undefined' && config.method && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(config.method.toUpperCase())) {
+    // Add CSRF token for all methods except GET and HEAD
+    if (typeof window !== 'undefined' && config.method && !['GET', 'HEAD'].includes(config.method.toUpperCase())) {
       const csrfToken = getCookie('csrftoken');
       if (csrfToken && config.headers) {
         config.headers['X-CSRFToken'] = csrfToken;
+      } else {
+        console.warn('CSRF token not found in cookies');
       }
     }
 
@@ -61,7 +63,6 @@ apiClient.interceptors.request.use(
     // Set Accept header
     if (config.headers) {
       config.headers['Accept'] = 'application/json';
-      // Set additional headers for CORS
       config.headers['X-Requested-With'] = 'XMLHttpRequest';
     }
     
@@ -95,11 +96,26 @@ apiClient.interceptors.response.use(
 export const api = {
   // Authentication endpoints
   auth: {
-    login: (credentials: { username: string; password: string }) => {
-      const formData = new FormData();
-      formData.append('username', credentials.username);
-      formData.append('password', credentials.password);
-      return apiClient.post('/rest-auth/login/', formData);
+    login: async (credentials: { username: string; password: string }) => {
+      try {
+        // Önce CSRF token'ı almak için bir GET isteği yap
+        await apiClient.get('/rest-auth/login/');
+        
+        // Login isteğini gönder
+        const formData = new FormData();
+        formData.append('username', credentials.username);
+        formData.append('password', credentials.password);
+        
+        return await apiClient.post('/rest-auth/login/', formData, {
+          headers: {
+            // Content type'ı axios'un otomatik belirlemesine izin ver
+            'Content-Type': 'multipart/form-data'
+          }
+        });
+      } catch (error) {
+        console.error('Login error:', error);
+        throw error;
+      }
     },
     
     register: (userData: { username: string; email: string; password1: string; password2: string }) => {
