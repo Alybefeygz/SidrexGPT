@@ -219,19 +219,9 @@ export const api = {
     
     get: (id: number) => apiClient.get(`/robot-pdfs/${id}/`),
     
-    create: (data: FormData) => apiClient.post('/robot-pdfs/', data, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    }),
+    create: (data: FormData) => apiClient.post('/robot-pdfs/', data),
     
-    update: (id: number, data: FormData | any) => apiClient.put(`/robot-pdfs/${id}/`, data, {
-      headers: data instanceof FormData ? {
-        'Content-Type': 'multipart/form-data',
-      } : {
-        'Content-Type': 'application/json',
-      },
-    }),
+    update: (id: number, data: FormData | any) => apiClient.put(`/robot-pdfs/${id}/`, data),
     
     delete: (id: number) => apiClient.delete(`/robot-pdfs/${id}/`),
     
