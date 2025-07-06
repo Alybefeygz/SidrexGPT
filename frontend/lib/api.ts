@@ -96,26 +96,20 @@ apiClient.interceptors.response.use(
 export const api = {
   // Authentication endpoints
   auth: {
+    getCSRFToken: async () => {
+      // Yeni CSRF endpoint'ine GET isteği at
+      await apiClient.get('/csrf/');
+    },
     login: async (credentials: { username: string; password: string }) => {
-      try {
-        // Önce CSRF token'ı almak için bir GET isteği yap
-        await apiClient.get('/rest-auth/login/');
-        
-        // Login isteğini gönder
-        const formData = new FormData();
-        formData.append('username', credentials.username);
-        formData.append('password', credentials.password);
-        
-        return await apiClient.post('/rest-auth/login/', formData, {
-          headers: {
-            // Content type'ı axios'un otomatik belirlemesine izin ver
-            'Content-Type': 'multipart/form-data'
-          }
-        });
-      } catch (error) {
-        console.error('Login error:', error);
-        throw error;
-      }
+      // Login isteğini gönder
+      const formData = new FormData();
+      formData.append('username', credentials.username);
+      formData.append('password', credentials.password);
+      return await apiClient.post('/rest-auth/login/', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
     },
     
     register: (userData: { username: string; email: string; password1: string; password2: string }) => {

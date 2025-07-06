@@ -134,13 +134,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (credentials: { username: string; password: string }) => {
     try {
-      // Login request will now set an HttpOnly cookie automatically
+      // Önce CSRF token'ı al
+      await api.auth.getCSRFToken();
+      // Sonra login isteğini gönder
       await api.auth.login(credentials)
-      
       // After successful login, fetch user details
       const userResponse = await api.auth.getUser()
-      setUser(userResponse.data)
-      
+      setUser(userResponse.data as User)
       return { success: true }
     } catch (error: any) {
       return {
@@ -170,7 +170,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // If the HttpOnly cookie is present and valid, this will succeed.
       try {
         const response = await api.auth.getUser()
-        setUser(response.data)
+        setUser(response.data as User)
       } catch (error) {
         // This will fail if the cookie is invalid or not present.
         // It's the expected behavior for a logged-out user.

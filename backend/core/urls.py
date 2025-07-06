@@ -20,6 +20,7 @@ from django.http import JsonResponse
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
+from .views import get_csrf_token
 
 def health_check(request):
     """Health check endpoint for Render.com"""
@@ -45,6 +46,7 @@ urlpatterns = [
     path('api/rest-auth/registration/', include('dj_rest_auth.registration.urls')),  # Bu satır düzeltildi
     path('api/', include('profiller.api.urls')),
     path('api/', include('robots.api.urls')),  # Brand API'si için ana URL'yi güncelle
+    path('api/csrf/', get_csrf_token, name='get_csrf_token'),  # Yeni CSRF endpoint
 ]
 
 # Canlı (production) ve geliştirme (development) ortamları için 
