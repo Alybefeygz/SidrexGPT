@@ -79,6 +79,7 @@ INSTALLED_APPS = [
     'django_extensions',
     'corsheaders',
     'knox',
+    'storages',  # AWS S3 entegrasyonu için eklendi
 ]
 
 MIDDLEWARE = [
@@ -176,11 +177,46 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_STORAGE = 'whitenoise.storage.WhiteNoiseStorage'
+# Whitenoise, S3 ayarları aktif olmadığında kullanılacak
+if not os.getenv('AWS_STORAGE_BUCKET_NAME'):
+    STATICFILES_STORAGE = 'whitenoise.storage.WhiteNoiseStorage'
 
 # Media files
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / 'uploads'
+
+# ==============================================================================
+# AWS S3 STORAGE CONFIGURATION
+# ==============================================================================
+
+# Ortam değişkenlerinden AWS S3 ayarlarını oku
+AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
+AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME')
+AWS_S3_REGION_NAME = os.getenv('AWS_S3_REGION_NAME')
+AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com' if AWS_STORAGE_BUCKET_NAME else None
+AWS_S3_OBJECT_PARAMETERS = {'CacheControl': 'max-age=86400'}
+AWS_DEFAULT_ACL = os.getenv('AWS_DEFAULT_ACL', 'private')
+AWS_S3_FILE_OVERWRITE = os.getenv('AWS_S3_FILE_OVERWRITE', 'False').lower() in ('true', '1', 'yes')
+
+# Sadece production ortamında veya S3 bucket adı belirtilmişse S3'ü kullan
+if AWS_STORAGE_BUCKET_NAME:
+    # Statik dosyalar için S3 depolama
+    STATICFILES_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+    # Yüklenen medya dosyaları (PDF'ler vb.) için S3 depolama
+    DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+    
+    # Statik dosyaların S3'teki konumu
+    STATIC_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/static/"
+    # Medya dosyalarının S3'teki konumu
+    MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/media/"
+    
+    print("✅ AWS S3 storage is configured.")
+else:
+    print("⚠️  AWS S3 storage is not configured. Using local storage.")
+    # Geliştirme ortamında veya S3 ayarları yoksa yerel depolama kullanılır
+    STATICFILES_STORAGE = 'whitenoise.storage.WhiteNoiseStorage'
+    DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
 
 # ==============================================================================
 # SECURITY SETTINGS
