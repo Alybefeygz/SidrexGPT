@@ -278,13 +278,27 @@ if DEBUG:
         "http://localhost:3000",
     ])
 
-# CSRF ayarları
+# CSRF ve Session Cookie Ayarları (Cross-Site için)
 CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS
-CSRF_COOKIE_DOMAIN = ".onrender.com"  # Alt alan adlarını da kapsar
-CSRF_COOKIE_SAMESITE = 'None'  # Cross-site istekler için
-CSRF_COOKIE_SECURE = True  # HTTPS için
-CSRF_COOKIE_HTTPONLY = False  # JavaScript erişimi için
-CSRF_USE_SESSIONS = False  # Cookie kullan
+
+if DEBUG:
+    # Geliştirme ortamında SameSite Lax olabilir
+    SESSION_COOKIE_SAMESITE = 'Lax'
+    CSRF_COOKIE_SAMESITE = 'Lax'
+else:
+    # Canlı ortamda cross-site istekler için 'None' olmalı
+    SESSION_COOKIE_SAMESITE = 'None'
+    CSRF_COOKIE_SAMESITE = 'None'
+
+# Cookie'lerin HTTPS üzerinden gönderilmesini zorunlu kıl
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+
+# CSRF cookie'sine JavaScript'in erişimine izin ver
+CSRF_COOKIE_HTTPONLY = False
+
+# Oturumlar için CSRF kullanma
+CSRF_USE_SESSIONS = False
 
 # CORS ayarları
 CORS_ALLOW_CREDENTIALS = True
@@ -348,8 +362,6 @@ LOGOUT_REDIRECT_URL = '/'
 
 # Session ayarları
 SESSION_COOKIE_AGE = 1209600  # 2 hafta
-SESSION_COOKIE_SAMESITE = 'Lax'
-SESSION_COOKIE_SECURE = False if DEBUG else True
 
 # dj-rest-auth ayarları
 REST_AUTH = {
@@ -358,12 +370,6 @@ REST_AUTH = {
     'LOGIN_SERIALIZER': 'profiller.api.serializers.CustomLoginSerializer',
     'USER_DETAILS_SERIALIZER': 'profiller.api.serializers.ProfilSerializer',
 }
-
-# CSRF ayarları
-CSRF_COOKIE_SAMESITE = 'Lax'
-CSRF_COOKIE_SECURE = False if DEBUG else True
-CSRF_COOKIE_HTTPONLY = False  # JavaScript erişimi için False
-CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS  # CORS origins'i CSRF için de kullan
 
 # ==============================================================================
 # KNOX CONFIGURATION
@@ -383,18 +389,6 @@ REST_KNOX = {
     'COOKIE_NAME': 'sidrex_auth_token',
     'COOKIE_SAMESITE': 'Lax', # Use 'Strict' for better security if frontend is on same domain
 }
-
-# ==============================================================================
-# SESSION AND COOKIE SETTINGS
-# ==============================================================================
-SESSION_COOKIE_SAMESITE = 'Lax'
-CSRF_COOKIE_SAMESITE = 'Lax'
-SESSION_COOKIE_HTTPONLY = True
-CSRF_COOKIE_HTTPONLY = False
-
-if not DEBUG:
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
 
 # ==============================================================================
 # FILE UPLOAD SETTINGS
@@ -476,82 +470,6 @@ GUNICORN_TIMEOUT = 120  # 120 saniye
 
 # Django request timeout
 REQUEST_TIMEOUT = 60  # 60 saniye
-
-# ==============================================================================
-# DJANGO REST AUTH & ALLAUTH CONFIGURATION
-# ==============================================================================
-
-SITE_ID = 1
-
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework.authentication.SessionAuthentication',
-        'knox.auth.TokenAuthentication',
-    ),
-    'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.IsAuthenticated',
-    ),
-}
-
-# dj-rest-auth ayarları
-REST_AUTH = {
-    'USE_JWT': False, 
-    'SESSION_LOGIN': True,
-    'LOGIN_SERIALIZER': 'profiller.api.serializers.CustomLoginSerializer',
-    'USER_DETAILS_SERIALIZER': 'profiller.api.serializers.ProfilSerializer',
-}
-
-# Knox ayarları (token ömrü vb.)
-REST_KNOX = {
-  'SECURE_HASH_ALGORITHM': 'cryptography.hazmat.primitives.hashes.SHA512',
-  'AUTH_TOKEN_CHARACTER_LENGTH': 64,
-  'TOKEN_TTL': timedelta(hours=12),
-  'USER_SERIALIZER': 'knox.serializers.UserSerializer',
-  'TOKEN_LIMIT_PER_USER': 10,
-  'AUTO_REFRESH': True,
-}
-
-# Email Backend (development için console'a yazdırır)
-if DEBUG:
-    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-else:
-    # Production için gerçek bir email servisi (örn: SendGrid, Mailgun) ayarlanmalıdır.
-    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-    # EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASSWORD etc. should be configured here.
-
-ACCOUNT_AUTHENTICATION_METHOD = 'email'
-ACCOUNT_EMAIL_REQUIRED = True
-ACCOUNT_UNIQUE_EMAIL = True
-ACCOUNT_USERNAME_REQUIRED = False
-ACCOUNT_EMAIL_VERIFICATION = 'none' # 'mandatory' veya 'optional' olarak değiştirilebilir
-
-
-# ==============================================================================
-# CORS & COOKIE SETTINGS FOR PRODUCTION
-# ==============================================================================
-
-# Tarayıcının frontend'den gelen isteklere izin vermesi için
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "https://sidrexgpt-frontend.onrender.com",
-]
-
-# Cookie'lerin domainler arası gönderilebilmesi için
-CORS_ALLOW_CREDENTIALS = True
-
-# Django'nun hangi domain'ler için cookie oluşturabileceği
-CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "https://sidrexgpt-frontend.onrender.com",
-]
-
-# Oturum cookie'lerinin ayarları
-SESSION_COOKIE_SAMESITE = 'None'
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SAMESITE = 'None'
-CSRF_COOKIE_SECURE = True
 
 # ==============================================================================
 # AWS S3 MEDIA STORAGE SETTINGS (PRODUCTION ONLY)
