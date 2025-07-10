@@ -1,157 +1,79 @@
 ﻿#!/usr/bin/env bash
-# Enhanced build script for Render.com deployment with database repair
+# Simplified build script for Render.com with existing Supabase database
 
-set -o errexit  # Exit on error
-
-echo " Starting enhanced build process..."
+echo "🚀 Starting build process for Supabase-connected Django app..."
 
 # Python sürümünü kontrol et
+echo "🐍 Python version:"
 python --version
 
 # Gerekli paketleri yükle
-echo " Installing Python dependencies..."
+echo "📦 Installing Python dependencies..."
 pip install --upgrade pip
 pip install -r requirements.txt
 
 # Statik dosyaları topla
-echo " Collecting static files..."
+echo "📁 Collecting static files..."
 python manage.py collectstatic --no-input
 
-# Toplanan dosyaları doğrula (DEBUGGING)
-echo " Verifying collected static files..."
-ls -R staticfiles
-
-# Veritabanı migrasyonlarını detaylı şekilde çalıştır
-echo " Running database migrations..."
-
-# Temel Django migrations
-echo "  - Running core Django migrations..."
-python manage.py migrate contenttypes --verbosity=2
-python manage.py migrate auth --verbosity=2
-python manage.py migrate sessions --verbosity=2
-
-# Sites framework için özel kontrol
-echo "  - Checking sites framework..."
+# Supabase bağlantısını test et
+echo "🗄️ Testing Supabase database connection..."
 python manage.py shell -c "
-from django.db import connection
-with connection.cursor() as cursor:
-    try:
-        cursor.execute('SELECT 1 FROM django_site LIMIT 1')
-    except Exception as e:
-        if 'relation \"django_site\" does not exist' in str(e):
-            print('Sites table does not exist, forcing migration...')
-            from django.core.management import call_command
-            call_command('migrate', 'sites', '--fake-initial')
-"
-
-python manage.py migrate sites --verbosity=2
-python manage.py migrate admin --verbosity=2
-
-# Uygulama migrations
-echo "  - Running application migrations..."
-python manage.py migrate profiller --verbosity=2
-python manage.py migrate robots --verbosity=2
-
-# Tüm migrations'ları çalıştır (eksik olanlar için)
-echo "  - Running remaining migrations..."
-python manage.py migrate --verbosity=2
-
-# Database repair ve debugging
-echo " Database repair and debugging..."
-python manage.py shell -c "
-import sys
 from django.db import connection
 from django.contrib.sites.models import Site
+from django.contrib.auth.models import User
 
-# Database tabloları kontrol et
 try:
-    tables = connection.introspection.table_names()
-    print(f' Database connected. Available tables: {len(tables)}')
+    # Bağlantı testi
+    with connection.cursor() as cursor:
+        cursor.execute('SELECT version();')
+        version = cursor.fetchone()
+        print(f'✅ PostgreSQL connected: {version[0][:50]}...')
     
-    # Önemli tabloları kontrol et
-    important_tables = ['django_site', 'robots_robot', 'robots_brand', 'auth_user']
-    for table in important_tables:
-        if table in tables:
-            print(f' Table {table} exists')
-        else:
-            print(f' Table {table} missing')
-            
-except Exception as e:
-    print(f' Database connection error: {e}')
-    sys.exit(1)
-
-# Sites framework kontrol et ve düzelt
-try:
-    if not Site.objects.filter(pk=1).exists():
-        Site.objects.create(pk=1, domain='sidrexgpt-backend.onrender.com', name='SidrexGPT Backend')
-        print(' Site object created')
-    else:
-        site = Site.objects.get(pk=1)
+    # Site konfigürasyonu
+    site, created = Site.objects.get_or_create(
+        pk=1,
+        defaults={
+            'domain': 'sidrexgpt-backend.onrender.com',
+            'name': 'SidrexGPT Backend'
+        }
+    )
+    if not created:
         site.domain = 'sidrexgpt-backend.onrender.com'
         site.name = 'SidrexGPT Backend'
         site.save()
-        print(' Site object updated')
-except Exception as e:
-    print(f' Site setup error: {e}')
-
-# Robot model kontrol et
-try:
-    from robots.models import Robot, Brand
-    robot_count = Robot.objects.count()
-    brand_count = Brand.objects.count()
-    print(f' Robots: {robot_count}, Brands: {brand_count}')
-except Exception as e:
-    print(f' Robot models error: {e}')
-
-print(' Database repair completed')
-"
-
-# Superuser oluştur (sadece yoksa)
-echo " Setting up superuser..."
-python manage.py shell -c "
-from django.contrib.auth.models import User
-import sys
-
-try:
+    print(f'✅ Site configured: {site.domain}')
+    
+    # Superuser kontrolü
     if not User.objects.filter(is_superuser=True).exists():
         User.objects.create_superuser(
             username='admin',
             email='admin@sidrexgpt.com',
             password='SidrexAdmin2025!'
         )
-        print(' Superuser created successfully!')
-        print('  Username: admin')
-        print('  Password: SidrexAdmin2025!')
+        print('✅ Superuser created: admin/SidrexAdmin2025!')
     else:
-        superuser_count = User.objects.filter(is_superuser=True).count()
-        print(f' Superuser already exists. Total superusers: {superuser_count}')
+        print('✅ Superuser already exists')
+    
+    # Mevcut veri kontrolü
+    from robots.models import Robot, Brand
+    robot_count = Robot.objects.count()
+    brand_count = Brand.objects.count()
+    print(f'📊 Current data: {robot_count} robots, {brand_count} brands')
+    
 except Exception as e:
-    print(f' Superuser creation error: {e}')
+    print(f'❌ Database error: {e}')
+    exit(1)
+
+print('✅ Supabase database ready - skipping migrations')
 "
 
-# Veritabanı verilerini yükle
-echo " Loading database data..."
-python manage.py loaddata db_backup.json
+# System check
+echo "🔍 Running Django system checks..."
+python manage.py check --verbosity=1
 
-# Final system check
-echo " Running system checks..."
-python manage.py check --verbosity=2
-
-echo " Enhanced build completed successfully!" 
-echo " Backend ready at: https://sidrexgpt-backend.onrender.com"
-echo " Admin panel: https://sidrexgpt-backend.onrender.com/admin/"
-echo " API root: https://sidrexgpt-backend.onrender.com/api/"
-echo " Robots API: https://sidrexgpt-backend.onrender.com/api/robots/"
-echo " Profiles API: https://sidrexgpt-backend.onrender.com/api/profile/profilleri/"
-echo " Auth API: https://sidrexgpt-backend.onrender.com/api/rest-auth/"
-
-# Veritabanı verilerini yükle (hata kontrolü ile)
-echo " Loading database data..."
-if [ -f "db_backup.json" ]; then
-    python manage.py loaddata db_backup.json --verbosity=2 || {
-        echo " Warning: Database load failed, continuing without data..."
-        echo " This is not critical - database structure is already created."
-    }
-else
-    echo " No database backup file found, skipping data load."
-fi
+echo "🎉 Build completed successfully!" 
+echo "🌐 Backend will be ready at: https://sidrexgpt-backend.onrender.com"
+echo "🔐 Admin panel: https://sidrexgpt-backend.onrender.com/admin/"
+echo "📡 API endpoints: https://sidrexgpt-backend.onrender.com/api/"
+echo "🤖 Note: Using existing Supabase database - no migrations applied"
