@@ -325,6 +325,38 @@ if DEBUG:
     print(f"   - CROSS_DOMAIN: {CROSS_DOMAIN}")
 
 # ==============================================================================
+# ADMIN PANEL ÖZEL CSRF AYARLARI
+# ==============================================================================
+
+# Production'da admin panel için özel ayarlar
+if not DEBUG:
+    # Admin panel için CSRF trusted origins'i genişlet
+    CSRF_TRUSTED_ORIGINS = [
+        "https://sidrexgpt-backend.onrender.com",
+        "https://sidrexgpt-frontend.onrender.com",
+    ] + ADDITIONAL_TRUSTED_ORIGINS
+    
+    # Admin panel için session ayarları - daha esnek
+    SESSION_COOKIE_SECURE = True
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Lax'  # Admin panel için Strict yerine Lax
+    
+    # CSRF için admin panel uyumlu ayarlar
+    CSRF_COOKIE_SECURE = True
+    CSRF_COOKIE_SAMESITE = 'Lax'  # Admin panel login için daha esnek
+    CSRF_COOKIE_HTTPONLY = False  # Admin panel JavaScript erişimi için
+    
+    # Admin panel için ek güvenlik ayarları
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    X_FRAME_OPTIONS = 'SAMEORIGIN'  # Admin panel iframe koruması
+    
+    print(f"🔐 Admin Panel CSRF Configuration:")
+    print(f"   - CSRF_COOKIE_SAMESITE: {CSRF_COOKIE_SAMESITE}")
+    print(f"   - SESSION_COOKIE_SAMESITE: {SESSION_COOKIE_SAMESITE}")
+    print(f"   - CSRF_TRUSTED_ORIGINS: {CSRF_TRUSTED_ORIGINS}")
+
+# ==============================================================================
 # REST FRAMEWORK CONFIGURATION
 # ==============================================================================
 
