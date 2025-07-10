@@ -39,14 +39,14 @@ export default function FirstRobotPage() {
       </div>
 
       {/* Robot Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex flex-col items-center justify-center">
           <h1 className="text-3xl font-bold mb-8" style={{ color: "#16B6C2" }}>SidrexGPT Asistanı</h1>
           
           {/* Robot ve PDF Yükleyici bölümü */}
           <div className="w-full grid grid-cols-2 gap-4">
             {/* Sol taraf - Robot */}
-            <div className="pl-32" style={{ marginTop: 'calc(10vh + 250px)' }}>
+            <div className="pl-40" style={{ marginTop: 'calc(10vh + 250px)' }}>
               <div className="flex flex-col items-center">
                 <FirstRobot
                   onChatToggle={handleChatToggle}
@@ -56,7 +56,7 @@ export default function FirstRobotPage() {
             </div>
             
             {/* Sağ taraf - PDF Yükleyici */}
-            <div className="pr-4 pl-12" style={{ marginTop: 'calc(5vh - 50px)' }}>
+            <div className="pr-4 pl-20" style={{ marginTop: 'calc(5vh - 50px)' }}>
               {canEditPDF() ? (
                 <PDFUploader 
                   activeColor="#16B6C2" 

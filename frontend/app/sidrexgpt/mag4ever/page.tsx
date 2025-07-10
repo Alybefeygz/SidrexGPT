@@ -14,7 +14,7 @@ export default function SecondRobotPage() {
   
   // Robot'u slug ile al
   const { data: robotData, loading: robotLoading, error: robotError } = useRobotBySlug('sidrexgpt-mag')
-  const robotId = robotData?.robot?.id
+  const robotId = (robotData as any)?.id  // ✅ Type assertion ile düzeltildi
   
   // Robot ID varsa PDF'leri al
   const { data: pdfs, loading: pdfsLoading, error: pdfsError, refetch } = useRobotPDFList(robotId)
@@ -41,6 +41,7 @@ export default function SecondRobotPage() {
         <div className="text-center">
           <div className="text-xl text-red-600">Robot bulunamadı!</div>
           <div className="text-sm text-gray-500 mt-2">{robotError}</div>
+          <div className="text-xs text-gray-400 mt-2">Robot Data: {JSON.stringify(robotData)}</div>
         </div>
       </div>
     )
@@ -68,14 +69,14 @@ export default function SecondRobotPage() {
       </div>
 
       {/* Robot Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex flex-col items-center justify-center">
           <h1 className="text-3xl font-bold mb-8" style={{ color: "#6D71B6" }}>SidrexGPT Mag Asistanı</h1>
           
           {/* Robot ve PDF Yükleyici bölümü */}
           <div className="w-full grid grid-cols-2 gap-4">
             {/* Sol taraf - Robot */}
-            <div className="pl-32" style={{ marginTop: 'calc(10vh + 250px)' }}>
+            <div className="pl-40" style={{ marginTop: 'calc(10vh + 250px)' }}>
               <div className="flex flex-col items-center">
                 <SecondRobot
                   onChatToggle={handleChatToggle}
@@ -85,12 +86,12 @@ export default function SecondRobotPage() {
             </div>
             
             {/* Sağ taraf - PDF Yükleyici */}
-            <div className="pr-4 pl-12" style={{ marginTop: 'calc(5vh - 50px)' }}>
-              {canEditPDF() ? (
+            <div className="pr-4 pl-20">
+              {canEditPDF() && robotId ? (
                 <PDFUploader 
                   activeColor="#6D71B6" 
                   robotId={robotId}
-                  initialPdfs={pdfs || []}
+                  initialPdfs={(pdfs as any) || []}  // ✅ Type assertion ile düzeltildi
                   refetchPdfs={refetch}
                 />
               ) : (

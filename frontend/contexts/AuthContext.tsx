@@ -143,11 +143,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(userResponse.data as User)
       return { success: true }
     } catch (error: any) {
+      let errorMessage = 'Giriş yapılırken bir hata oluştu.';
+      
+      // CSRF error handling
+      if (error.message && error.message.includes('CSRF')) {
+        errorMessage = 'Güvenlik token hatası. Lütfen sayfayı yenileyin.';
+      } else if (error.response?.data?.non_field_errors?.[0]) {
+        errorMessage = error.response.data.non_field_errors[0];
+      } else if (error.response?.data?.detail) {
+        errorMessage = error.response.data.detail;
+      }
+      
       return {
         success: false,
-        error: error.response?.data?.non_field_errors?.[0] || 
-               error.response?.data?.detail || 
-               'Giriş yapılırken bir hata oluştu.'
+        error: errorMessage
       }
     }
   }

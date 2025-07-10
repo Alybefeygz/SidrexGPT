@@ -16,6 +16,7 @@ from robots.api.serializers import ChatMessageSerializer
 router = DefaultRouter()
 router.register(r'robots', RobotViewSet)
 router.register(r'brands', BrandViewSet)
+router.register(r'robot-pdfs', RobotPDFViewSet, basename='robot-pdfs')
 
 # URL patterns
 urlpatterns = [
@@ -24,13 +25,6 @@ urlpatterns = [
     path('robots/<str:slug>/', robot_detail_by_slug, name='robot-detail-by-slug'),
     path('robots/<str:slug>/chat/', RobotChatView.as_view(), name='robot-chat'),
 ]
-
-# RobotPDF için özel router
-pdf_router = DefaultRouter()
-pdf_router.register(r'robot-pdfs', RobotPDFViewSet, basename='robot-pdfs')
-
-# RobotPDF URL'lerini ana URL'lere ekle
-urlpatterns += pdf_router.urls
 
 import re
 import sys
@@ -380,13 +374,22 @@ class RobotChatView(GenericAPIView):
     
     def post(self, request, slug, format=None):
         """POST request - chat mesajını kurallar PDF'i ile işle"""
+        # ⏱️ ZAMAN SAYACI BAŞLAT - Kullanıcı mesaj gönderdiği an
+        request_start_time = time.time()
+        user_message = request.data.get('message', 'Bilinmeyen mesaj')
+        
+        logger.info(f"🚀 CHAT İSTEĞİ BAŞLADI - Robot: {slug} | Kullanıcı Mesajı: '{user_message[:50]}{'...' if len(user_message) > 50 else ''}' | Başlangıç Zamanı: {time.strftime('%H:%M:%S', time.localtime(request_start_time))}")
+        
         # Sidrex markası için API istek kontrolü ve sayaç artışı
         try:
             sidrex_brand = Brand.get_or_create_sidrex()
             
             # Paket süresi kontrolü - süre dolmuşsa özel mesaj döndür
             if sidrex_brand.is_package_expired():
-                logger.warning(f"Package expired for Sidrex: {sidrex_brand.paket_turu} package")
+                # ⏱️ ZAMAN SAYACI BİTİŞ - Paket süresi doldu
+                elapsed_time = time.time() - request_start_time
+                logger.warning(f"📦❌ PAKET SÜRESİ DOLDU - Robot: {slug} | Süre: {elapsed_time:.2f}s | Paket: {sidrex_brand.paket_turu}")
+                
                 return Response({
                     'robot_name': 'SidrexGPT',
                     'robot_id': 1,
@@ -402,7 +405,10 @@ class RobotChatView(GenericAPIView):
             
             # İstek sınırı kontrolü - sınır aşılmışsa özel mesaj döndür
             if sidrex_brand.is_limit_exceeded():
-                logger.warning(f"API request limit exceeded for Sidrex: {sidrex_brand.total_api_requests}/{sidrex_brand.request_limit}")
+                # ⏱️ ZAMAN SAYACI BİTİŞ - İstek sınırı aşıldı
+                elapsed_time = time.time() - request_start_time
+                logger.warning(f"🚫 İSTEK SINIRI AŞILDI - Robot: {slug} | Süre: {elapsed_time:.2f}s | İstek: {sidrex_brand.total_api_requests}/{sidrex_brand.request_limit}")
+                
                 return Response({
                     'robot_name': 'SidrexGPT',
                     'robot_id': 1,
@@ -442,12 +448,17 @@ class RobotChatView(GenericAPIView):
             
             # AI işleme mantığı
             try:
+                # ⏱️ AI İŞLEME BAŞLANGIÇ ZAMANINI KAYDET
+                ai_start_time = time.time()
+                logger.info(f"🤖 AI İŞLEME BAŞLADI - Robot: {slug} | AI Başlangıç: {time.strftime('%H:%M:%S', time.localtime(ai_start_time))}")
+                
                 # AI handler oluştur - Settings'ten API key ile
                 OpenRouterAIHandlerClass = get_ai_handler()
                 ai_handler = OpenRouterAIHandlerClass()
                 
                 # Robot'un aktif PDF içeriklerini al (kurallar PDF'i öncelikli)
-                pdf_contents = get_robot_pdf_contents(robot)
+                from robots.services import get_robot_pdf_contents_for_ai
+                pdf_contents = get_robot_pdf_contents_for_ai(robot)
                 
                 # PDF türlerini kontrol et (Beyan > Rol > Kurallar > Bilgi öncelik sırası)
                 declaration_pdf = robot.pdf_dosyalari.filter(is_active=True, pdf_type='beyan').first()
@@ -456,122 +467,103 @@ class RobotChatView(GenericAPIView):
                 info_pdf = robot.pdf_dosyalari.filter(is_active=True, pdf_type='bilgi').first()
                 
                 # RAG sistemi için system prompt oluştur (Beyan PDF'i en öncelikli - yasal compliance)
-                if declaration_pdf:
-                    system_prompt = f"""🚨 YASAL COMPLIANCE TALİMATLARI - KESSİNLİKLE UYULMASI ZORUNLU 🚨
+                if rules_pdf:
+                    system_prompt = f"""🛑 MUTLAK KURAL UYGULAMASI - İHLAL EDİLEMEZ 🛑
 
-🔥 EN ÖNCELİKLİ: YASAL BEYAN PDF'İ
-Bu ilaç firması için yasal compliance zorunludur. BEYAN PDF'inde yazan cümlelerin dışına asla çıkamazsınız!
+⚠️ DİKKAT: Bu prompt ile kuralları ihlal eden HERHANGI bir cevap veremezsiniz!
 
-📋 ÖNCELIK SIRASI:
-1. 🚨 YASAL BEYAN PDF'İ → Kesinlikle uyulması gereken yasal ifadeler (EN ÖNCELİKLİ)
-2. 🔴 ROL PDF'İ → Karakter ve davranış belirleme  
-3. 🔴 KURALLAR PDF'İ → Genel kurallar ve sınırlar
-4. 📘 BİLGİ PDF'İ → Bilgi kaynağı
+📋 ZORUNLU KONTROL SÜRECİ:
+1. ÖNCE kuralları oku
+2. Kullanıcı sorusu kuralları ihlal ediyor mu kontrol et
+3. EĞER İHLAL EDİYORSA: "Bu konu hakkında bilgi veremem" de ve DUR
+4. EĞER İHLAL ETMİYORSA: Sadece o zaman cevap ver
 
-⚠️ YASAL UYARI: 
-- Beyan PDF'indeki ifadelerin tamamen dışına çıkmak yasaktır
-- İlaç endüstrisi düzenlemelerine uymak zorundasınız
-- Sadece beyan PDF'inde belirtilen ifadeleri kullanabilirsiniz
-
-PDF İÇERİKLERİ:
+🚨 KURAL PDF İÇERİĞİ:
 {pdf_contents}
 
-Kullanıcı sorusu: {message}
+⛔ YASAK ÖRNEK SORULAR (ASLA CEVAPLAMA):
+- "Zzen hakkında bilgi ver" → REDDET
+- "Başka ürünleriniz var mı?" → REDDET  
+- "Diğer ilaçlar hakkında..." → REDDET
+- Kural PDF'inde yasaklanan herhangi bir konu → REDDET
 
-ŞİMDİ YANIT VER: Önce beyan PDF'indeki yasal ifadeleri kontrol et, sonra rol belirleme yap, kuralları uygula ve bilgilerle destekle."""
+✅ İZİN VERİLEN ÖRNEK SORULAR:
+- Sadece kural PDF'inde açıkça izin verilen konular
 
-                elif rules_pdf and role_pdf:
-                    system_prompt = f"""KRİTİK TALİMATLAR - MUTLAKA UYULMASI ZORUNLU:
+Kullanıcı sorusu: "{message}"
 
-🔴 1. KURALLAR PDF'İ (İLK PDF): Bu PDF'de senin NASIL cevap vermen gerektiği yazılı. Bu kurallara MUTLAKA uy:
-   - Karakter sınırları varsa kesinlikle aşma
-   - Yanıt formatı belirtilmişse tam uy
-   - Yasaklanan davranışlar varsa asla yapma
-   - Bu kurallar her şeyden öncelikli!
+🔍 ŞİMDİ KONTROL ET:
+1. Bu soru kural PDF'inde yasaklanmış mı? 
+2. EVET ise → "Bu konu hakkında bilgi veremem" de
+3. HAYIR ise → Kurallara uygun şekilde cevap ver
 
-🔴 2. ROL PDF'İ (İKİNCİ PDF): Bu PDF'de senin KİM olman gerektiği yazılı. Bu role TAMAMEN bürün:
-   - Belirtilen kişiliği %100 benimse
-   - O kişinin konuşma tarzıyla yanıtla
-   - O kişinin bakış açısıyla değerlendir
-   - Rol dışına çıkma!
-
-🔴 3. MUTLAK ÖNCELIK SIRASI:
-   1. KURALLAR PDF'İ → Her yanıtta kontrol et ve uy
-   2. ROL PDF'İ → Her yanıtta bu kişilik olarak davran
-   3. DİĞER PDF'LER → Bilgi kaynağı olarak kullan
-
-⚠️ UYARI: Kurallar veya rol ihlali yapma! Bu PDF'lerdeki direktifler diğer her şeyden önemli!
-
-PDF İÇERİKLERİ:
-{pdf_contents}
-
-Kullanıcı sorusu: {message}
-
-ŞİMDİ YANIT VER: Önce kurallar PDF'ini kontrol et, sonra rol PDF'indeki kişiliği benimse, son olarak diğer PDF'lerden bilgi kullanarak soruyu yanıtla."""
-                elif rules_pdf:
-                    system_prompt = f"""KRİTİK TALİMATLAR - MUTLAKA UYULMASI ZORUNLU:
-
-🔴 KURALLAR PDF'İ (İLK PDF): Bu PDF'de senin NASIL cevap vermen gerektiği yazılı. Bu kurallara KESINLIKLE uy:
-   - Karakter sınırları varsa kesinlikle aşma
-   - Yanıt formatı belirtilmişse tam uy  
-   - Yasaklanan davranışlar varsa asla yapma
-   - Belirtilen ton ve üslup ile konuş
-   - Bu kurallar her şeyden öncelikli!
-
-🔴 TEMEL İLKELER:
-1. KURALLAR PDF'İ → Her yanıtta kontrol et ve uy
-2. DİĞER PDF'LER → Bilgi kaynağı olarak kullan
-3. Kural ihlali yapma, PDF dışı bilgi verme
-
-⚠️ UYARI: Kuralları ihlal etme! Bu direktifler diğer her şeyden önemli!
-
-PDF İÇERİKLERİ:
-{pdf_contents}
-
-Kullanıcı sorusu: {message}
-
-ŞİMDİ YANIT VER: Önce kurallar PDF'ini kontrol et ve tam uy, sonra diğer PDF'lerden bilgi kullanarak soruyu yanıtla."""
+KARAR VE YANIT:
+"""
                 elif role_pdf:
-                    system_prompt = f"""KRİTİK TALİMATLAR - MUTLAKA UYULMASI ZORUNLU:
+                    system_prompt = f"""🛑 MUTLAK TALİMAT SİSTEMİ - KESSİNLİKLE UYULMASI ZORUNLU 🛑
 
-🔴 ROL PDF'İ (İLK PDF): Bu PDF'de senin KİM olman gerektiği yazılı. Bu role TAMAMEN bürün:
-   - Belirtilen kişiliği %100 benimse
-   - O kişinin konuşma tarzıyla yanıtla
-   - O kişinin bakış açısıyla değerlendir
-   - O kişinin bilgi seviyesiyle konuş
-   - Rol dışına asla çıkma!
+📋 İŞLEMLENDİRME SIRASI:
+1️⃣ ROL PDF'İNİ OKU → Hangi karakter olduğunu ve nasıl konuşacağını belirle  
+2️⃣ BİLGİ PDF'İNİ OKU → Cevabının içeriğini buradan çıkart
+3️⃣ BEYAN PDF'İNİ KONTROL ET → Bu kapsamın dışına asla çıkma
 
-🔴 TEMEL İLKELER:
-1. ROL PDF'İ → Her yanıtta bu kişilik olarak davran
-2. DİĞER PDF'LER → Bilgi kaynağı olarak kullan
-3. Rol dışına çıkma, PDF dışı bilgi verme
+🚨 ZORUNLU SÜREÇ:
+Sana gelen soruya ROL PDF'inin metnindeki bilgiler ile karakterin nasıl biri olduğunu ve senin nasıl bir karakter ağzından cevap vereceğini belirlemelisin. BİLGİ PDF'inin içindeki bilgilerden cevabını çıkartıp BEYAN PDF içinde yazan bilgiler kapsamı dışına çıkmadan, beyan PDF dışında olmayan bir bilgi vermeden cevap vermelisin.
 
-⚠️ UYARI: Rolden sapma! Bu direktifler diğer her şeyden önemli!
+⚠️ MUTLAK KURAL: 
+- BEYAN PDF'i dışındaki hiçbir bilgiyi verme
+- ROL PDF'i hangi karaktersen o karakter ol
+- BİLGİ PDF'i sadece bilgi kaynağın
 
 PDF İÇERİKLERİ:
 {pdf_contents}
 
 Kullanıcı sorusu: {message}
 
-ŞİMDİ YANIT VER: Önce rol PDF'indeki kişiliği benimse, sonra diğer PDF'lerden bilgi kullanarak soruyu yanıtla."""
+ADIM ADIM SÜREÇ:
+1. Rol PDF'ini oku → Ben kimim? Nasıl konuşmalıyım?
+2. Bilgi PDF'ini oku → Bu soruya hangi bilgilerle cevap verebilirim?
+3. Beyan PDF'ini kontrol et → Bu bilgiler beyan kapsamında mı?
+4. Eğer her şey uygunsa rol karakteri olarak cevap ver, değilse reddet
+
+YANIT:
+"""
                 else:
-                    system_prompt = f"""Sen {robot.name} robotusun. Sadece aşağıda verilen PDF dokümanlarının içeriğine dayanarak sorulara cevap verebilirsin.
+                    system_prompt = f"""🛑 MUTLAK TALİMAT SİSTEMİ - KESSİNLİKLE UYULMASI ZORUNLU 🛑
 
-📘 TEMEL İLKELER:
-1. Sadece verilen PDF içeriklerinden cevap ver
-2. PDF'lerde olmayan bilgiler hakkında cevap verme
-3. "Bu bilgi PDF'lerde bulunmuyor" diyerek reddet
-4. PDF içeriğine sadık kal
+📋 İŞLEMLENDİRME SIRASI:
+1️⃣ PDF İÇERİKLERİNİ OKU → Hangi bilgiler mevcut?
+2️⃣ KAPSAM BELİRLE → Sadece PDF'lerdeki bilgiler
+3️⃣ CEVAP VER → PDF sınırları içinde kal
+
+🚨 ZORUNLU SÜREÇ:
+Sen {robot.name} robotusun. Sadece aşağıda verilen PDF dokümanlarının içeriğine dayanarak sorulara cevap verebilirsin. Sana gelen soruya PDF'lerin içindeki bilgilerden cevabını çıkartıp, PDF kapsamı dışına çıkmadan, PDF dışında olmayan bir bilgi vermeden cevap vermelisin.
+
+⚠️ MUTLAK KURAL: 
+- PDF'ler dışındaki hiçbir bilgiyi verme
+- PDF'lerde olmayan konularda konuşma
+- Sadece PDF içeriğine dayalı cevap ver
 
 PDF İÇERİKLERİ:
 {pdf_contents}
 
 Kullanıcı sorusu: {message}
 
-Lütfen sadece yukarıdaki PDF içeriklerine dayanarak cevap ver."""
+ADIM ADIM SÜREÇ:
+1. PDF içeriklerini oku → Bu soruya hangi bilgilerle cevap verebilirim?
+2. PDF kapsamını kontrol et → Bu bilgiler PDF'lerde var mı?
+3. Eğer PDF'lerde varsa cevap ver, yoksa "Bu bilgi PDF'lerimde bulunmuyor" de
+
+YANIT:
+"""
 
                 # AI'dan yanıt al - PDF içerikleri ile
                 response_message = ai_handler.ask_question(message, system_prompt=system_prompt)
+                
+                # ⏱️ AI İŞLEME SÜRESİNİ HESAPLA
+                ai_end_time = time.time()
+                ai_processing_time = ai_end_time - ai_start_time
+                logger.info(f"🤖✅ AI İŞLEME TAMAMLANDI - Robot: {slug} | AI Süresi: {ai_processing_time:.2f}s | Yanıt Uzunluğu: {len(response_message)} karakter")
                 
                 # Response size kontrolü - çok uzun cevapları kısalt
                 if len(response_message) > 2000:
@@ -579,20 +571,23 @@ Lütfen sadece yukarıdaki PDF içeriklerine dayanarak cevap ver."""
                     response_message = response_message[:1800] + "\n\n... (Cevap çok uzun olduğu için kısaltıldı. Daha spesifik sorular sorabilirsiniz.)"
                 
             except BrokenPipeError:
-                # Client disconnected during response
-                logger.info("Client disconnected during AI response")
+                # ⏱️ ZAMAN SAYACI BİTİŞ - Client bağlantısı kesildi
+                elapsed_time = time.time() - request_start_time
+                logger.info(f"🔌❌ CLIENT BAĞLANTISI KESİLDİ - Robot: {slug} | Toplam Süre: {elapsed_time:.2f}s")
                 return Response({'error': 'Client bağlantısı kesildi'}, status=499)
             except ConnectionResetError:
-                # Connection reset by client
-                logger.info("Connection reset by client during AI response")
+                # ⏱️ ZAMAN SAYACI BİTİŞ - Connection reset
+                elapsed_time = time.time() - request_start_time
+                logger.info(f"🔄❌ BAĞLANTI SIFIRLANDI - Robot: {slug} | Toplam Süre: {elapsed_time:.2f}s")
                 return Response({'error': 'Bağlantı sıfırlandı'}, status=499)
             except Exception as e:
-                # Log the actual error for debugging
-                logger.error(f"AI request error: {type(e).__name__}: {str(e)}")
+                # ⏱️ ZAMAN SAYACI BİTİŞ - Genel hata
+                elapsed_time = time.time() - request_start_time
+                logger.error(f"❌ AI İSTEK HATASI - Robot: {slug} | Hata: {type(e).__name__}: {str(e)} | Toplam Süre: {elapsed_time:.2f}s")
                 
                 # Check for specific network errors
                 if 'Broken pipe' in str(e) or 'Connection reset' in str(e):
-                    logger.info("Network error during AI response")
+                    logger.info(f"🌐❌ AĞ HATASI - Robot: {slug} | Süre: {elapsed_time:.2f}s")
                     return Response({'error': 'Ağ bağlantısı kesildi'}, status=499)
                 
                 # Generic error handling
@@ -615,6 +610,11 @@ Lütfen sadece yukarıdaki PDF içeriklerine dayanarak cevap ver."""
                 paket_turu = 'normal'
                 package_status = '✅ Aktif'
             
+            # ⏱️ ZAMAN SAYACI BİTİŞ - Başarılı response
+            request_end_time = time.time()
+            total_elapsed_time = request_end_time - request_start_time
+            logger.info(f"✅ CHAT İSTEĞİ TAMAMLANDI - Robot: {slug} | Toplam Süre: {total_elapsed_time:.2f}s | Bitiş Zamanı: {time.strftime('%H:%M:%S', time.localtime(request_end_time))}")
+            
             return Response({
                 'robot_name': robot.name,
                 'robot_id': robot.id,
@@ -636,6 +636,9 @@ Lütfen sadece yukarıdaki PDF içeriklerine dayanarak cevap ver."""
                 'timestamp': '2025-01-11T12:00:00Z'
             })
         else:
+            # ⏱️ ZAMAN SAYACI BİTİŞ - Serializer hatası
+            elapsed_time = time.time() - request_start_time
+            logger.error(f"📝❌ SERİALİZER HATASI - Robot: {slug} | Süre: {elapsed_time:.2f}s | Hatalar: {serializer.errors}")
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 # Router oluştur

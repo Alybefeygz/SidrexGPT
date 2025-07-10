@@ -1,5 +1,9 @@
 from django.db import models
 from django.contrib.auth.models import User
+from robots.services import download_pdf_content_from_drive, extract_text_from_pdf_stream
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Create your models here.
 
@@ -300,6 +304,7 @@ class Robot(models.Model):
         """
         from django.conf import settings
         from robots.scripts.ai_request import OpenRouterAIHandler
+        from robots.services import get_robot_pdf_contents_for_ai
         import os
         
         # Marka API istek sayısını kontrol et
@@ -334,19 +339,40 @@ class Robot(models.Model):
                 app_name="SidrexGPT"
             )
             
-            # Sistem promptunu hazırla
+            # PDF içeriklerini al (RAG sistemi)
+            pdf_contents = get_robot_pdf_contents_for_ai(self)
+            
+            # Debug: PDF içerik boyutunu logla
+            print(f"DEBUG PDF İçerik Uzunluğu: {len(pdf_contents)} karakter")
+            print(f"DEBUG PDF İçerik İlk 200 karakter: {pdf_contents[:200]}")
+            
+            # Sistem promptunu hazırla (PDF içerikleriyle birlikte)
             system_prompt = f"""Sen {self.name} adlı bir yapay zeka asistanısın. 
             Görevin kullanıcılara yardımcı olmak ve sorularını yanıtlamak.
             
             Ürün: {self.product_name}
             
-            Lütfen aşağıdaki kurallara uy:
-            1. Her zaman nazik ve profesyonel ol
-            2. Emin olmadığın konularda "Bilmiyorum" de
-            3. Yanıtların kısa ve öz olsun
-            4. Türkçe karakterleri doğru kullan
-            5. Emoji kullanma
+            ÖNEMLİ: Aşağıdaki PDF belgelerindeki bilgileri kullanarak cevap ver. Bu belgeler senin bilgi kaynağın:
+
+{pdf_contents}
+
+            KURALLAR:
+            1. Öncelikle yukarıdaki PDF belgelerindeki bilgileri kullan
+            2. PDF'lerde yasal beyan varsa ona kesinlikle uy
+            3. Rol tanımı varsa o role göre davran
+            4. Kurallar varsa onlara sıkı sıkıya bağlı kal
+            5. Bilgi PDF'lerindeki teknik detayları kullan
+            6. Emin olmadığın konularda "PDF belgelerimde bu bilgi bulunmuyor" de
+            7. Her zaman nazik ve profesyonel ol
+            8. Yanıtların kısa ve öz olsun
+            9. Türkçe karakterleri doğru kullan
+            10. Emoji kullanma
+            
+            Eğer PDF belgelerinde ilgili bilgi yoksa, genel bilgilerinle yardımcı olmaya çalış ama bunun PDF'lerde olmadığını belirt.
             """
+            
+            # Debug: Sistem promptu boyutunu logla
+            print(f"DEBUG Sistem Prompt Uzunluğu: {len(system_prompt)} karakter")
             
             # Mesaj geçmişini hazırla
             messages = [
@@ -354,8 +380,12 @@ class Robot(models.Model):
                 {"role": "user", "content": message}
             ]
             
+            # Debug: Toplam mesaj boyutunu logla
+            total_message_size = len(system_prompt) + len(message)
+            print(f"DEBUG Toplam Mesaj Boyutu: {total_message_size} karakter")
+            
             # Model döngüsü sistemi ile yanıt al
-            response = handler.chat_with_history(messages)
+            response = handler.chat_with_history(messages, max_tokens=6000)
             
             return {
                 'message': message,
@@ -385,9 +415,15 @@ class RobotPDF(models.Model):
     ]
     
     robot = models.ForeignKey(Robot, on_delete=models.CASCADE, related_name='pdf_dosyalari')
-    pdf_dosyasi = models.FileField(upload_to='robot_pdfs/%Y/%m/', verbose_name="PDF Dosyası")
+    
+    # Depolama Bilgileri
+    pdf_dosyasi = models.URLField(max_length=500, verbose_name="PDF Dosyası (Google Drive Linki)")
+    gdrive_file_id = models.CharField(max_length=200, verbose_name="Google Drive Dosya ID", blank=True, null=True)
+    supabase_path = models.CharField(max_length=500, verbose_name="Supabase Dosya Yolu", blank=True, null=True)
+
     dosya_adi = models.CharField(max_length=200, verbose_name="Dosya Adı", blank=True)
     aciklama = models.TextField(blank=True, null=True, verbose_name="Açıklama")
+    pdf_icerigi = models.TextField(blank=True, null=True, verbose_name="PDF İçeriği")
     is_active = models.BooleanField(default=True, verbose_name="Aktif mi?")
     pdf_type = models.CharField(
         max_length=10,
@@ -402,32 +438,39 @@ class RobotPDF(models.Model):
     yukleme_zamani = models.DateTimeField(auto_now_add=True)
     
     def save(self, *args, **kwargs):
-        if not self.dosya_adi and self.pdf_dosyasi:
+        # Önce orijinal 'save' metodunu çağırarak nesnenin kaydedilmesini ve bir pk almasını sağlayalım.
+        # Bu, özellikle yeni nesneler için önemlidir.
+        is_new = self._state.adding
+        
+        # Eğer dosya adı boşsa ve bir dosya yolu varsa, dosya adını ayıkla
+        if not self.dosya_adi and hasattr(self.pdf_dosyasi, 'name'):
             self.dosya_adi = self.pdf_dosyasi.name
         
-        # PDF türüne göre has_rules, has_role, has_info ve has_declaration değerlerini otomatik ayarla
-        if self.pdf_type == 'kural':
-            self.has_rules = True
-            self.has_role = False
-            self.has_info = False
-            self.has_declaration = False
-        elif self.pdf_type == 'rol':
-            self.has_rules = False
-            self.has_role = True
-            self.has_info = False
-            self.has_declaration = False
-        elif self.pdf_type == 'beyan':
-            self.has_rules = False
-            self.has_role = False
-            self.has_info = False
-            self.has_declaration = True
-        else:  # bilgi
-            self.has_rules = False
-            self.has_role = False
-            self.has_info = True
-            self.has_declaration = False
-            
+        # PDF türüne göre boolean alanları ayarla
+        self.has_rules = (self.pdf_type == 'kural')
+        self.has_role = (self.pdf_type == 'rol')
+        self.has_declaration = (self.pdf_type == 'beyan')
+        self.has_info = (self.pdf_type == 'bilgi')
+
+        # Değişiklikleri kaydet
         super().save(*args, **kwargs)
+
+        # Sadece yeni bir PDF eklendiğinde içeriği doldur.
+        # Mevcut PDF'lerin içeriğini doldurmak için ayrı bir management command kullanacağız.
+        if is_new and self.gdrive_file_id and not self.pdf_icerigi:
+            try:
+                logger.info(f"Yeni PDF için içerik okunuyor: {self.dosya_adi} (ID: {self.id})")
+                pdf_stream = download_pdf_content_from_drive(self.gdrive_file_id)
+                if pdf_stream:
+                    self.pdf_icerigi = extract_text_from_pdf_stream(pdf_stream)
+                    # İçeriği kaydetmek için tekrar save çağırıyoruz ama sinyalleri tetiklememek için
+                    # update_fields kullanıyoruz.
+                    super().save(update_fields=['pdf_icerigi'])
+                    logger.info(f"PDF içeriği başarıyla okundu ve kaydedildi: {self.dosya_adi}")
+                else:
+                    logger.warning(f"PDF içeriği indirilemedi: {self.dosya_adi}")
+            except Exception as e:
+                logger.error(f"PDF içeriği okunurken hata oluştu: {self.dosya_adi} - Hata: {e}")
     
     def __str__(self):
         status = "✅" if self.is_active else "❌"
@@ -453,3 +496,61 @@ class RobotPDF(models.Model):
         verbose_name = 'Robot PDF Dosyası'
         verbose_name_plural = 'Robot PDF Dosyaları'
         ordering = ['-yukleme_zamani']
+
+
+class RobotSystemPrompt(models.Model):
+    """Robot-bazlı sistem prompt'ları için model"""
+    
+    PROMPT_TYPE_CHOICES = [
+        ('main', 'Ana Sistem Prompt'),
+        ('health_claims', 'Sağlık Beyanları'),
+        ('product_redirect', 'Ürün Yönlendirme'),
+        ('fallback', 'Fallback/Varsayılan'),
+    ]
+    
+    robot = models.ForeignKey(Robot, on_delete=models.CASCADE, related_name='system_prompts', verbose_name="Robot")
+    prompt_type = models.CharField(
+        max_length=20,
+        choices=PROMPT_TYPE_CHOICES,
+        default='main',
+        verbose_name="Prompt Türü"
+    )
+    prompt_content = models.TextField(verbose_name="Prompt İçeriği")
+    is_active = models.BooleanField(default=True, verbose_name="Aktif mi?")
+    priority = models.IntegerField(default=0, verbose_name="Öncelik (Yüksek önce)")
+    
+    # Konu-bazlı özelleştirmeler
+    topic_keywords = models.TextField(
+        blank=True, null=True,
+        verbose_name="Konu Anahtar Kelimeleri",
+        help_text="Virgülle ayrılmış anahtar kelimeler (örn: bağışıklık,yorgunluk,kas)"
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Oluşturulma Tarihi")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Güncellenme Tarihi")
+    
+    def __str__(self):
+        status = "✅" if self.is_active else "❌"
+        return f"{self.robot.name} - {self.get_prompt_type_display()} {status}"
+    
+    def get_keywords_list(self):
+        """Anahtar kelimeleri liste olarak döndür"""
+        if self.topic_keywords:
+            return [keyword.strip().lower() for keyword in self.topic_keywords.split(',')]
+        return []
+    
+    def matches_topic(self, user_message):
+        """Kullanıcı mesajının bu prompt'a uygun olup olmadığını kontrol et"""
+        if not self.topic_keywords:
+            return False  # Topic keywords yoksa match etmez, sadece fallback olarak kullanılır
+        
+        message_lower = user_message.lower()
+        keywords = self.get_keywords_list()
+        
+        return any(keyword in message_lower for keyword in keywords)
+    
+    class Meta:
+        verbose_name = 'Robot Sistem Prompt'
+        verbose_name_plural = 'Robot Sistem Promptları'
+        ordering = ['-priority', '-created_at']
+        unique_together = [('robot', 'prompt_type')]  # Her robot için her türden sadece bir prompt

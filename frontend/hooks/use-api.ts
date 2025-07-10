@@ -1,5 +1,22 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { api } from '@/lib/api';
+
+// ⚡ PERFORMANS: Debounce utility function
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
 
 // Generic API hook
 export function useApi<T>(
@@ -10,12 +27,15 @@ export function useApi<T>(
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // ⚡ PERFORMANS: Memoize edilen API call
+  const memoizedApiCall = useCallback(apiCall, dependencies);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         setError(null);
-        const response = await apiCall();
+        const response = await memoizedApiCall();
         setData(response.data);
       } catch (err: any) {
         setError(err.response?.data?.message || err.message || 'Bir hata oluştu');
@@ -25,23 +45,22 @@ export function useApi<T>(
     };
 
     fetchData();
-  }, dependencies);
+  }, [memoizedApiCall]);
 
-  return { data, loading, error, refetch: () => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const response = await apiCall();
-        setData(response.data);
-      } catch (err: any) {
-        setError(err.response?.data?.message || err.message || 'Bir hata oluştu');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }};
+  const refetch = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await memoizedApiCall();
+      setData(response.data);
+    } catch (err: any) {
+      setError(err.response?.data?.message || err.message || 'Bir hata oluştu');
+    } finally {
+      setLoading(false);
+    }
+  }, [memoizedApiCall]);
+
+  return { data, loading, error, refetch };
 }
 
 // Authentication hooks
@@ -205,7 +224,7 @@ export function useRobotActivePDFs(robotId: number) {
 
 // Robot PDF Management hooks
 export function useRobotPDFList(robotId?: number, isActive?: boolean, pdfType?: string) {
-  return useApi(() => api.robotPDFs.list(robotId, isActive, pdfType), [robotId, isActive, pdfType]);
+  return useApi(() => api.robotPDFs.list(robotId, isActive, pdfType), [robotId, isActive, pdfType], []);
 }
 
 export function useRobotPDFActions() {
@@ -219,7 +238,7 @@ export function useRobotPDFActions() {
 
       const formData = new FormData();
       formData.append('robot_id', robotId.toString());
-      formData.append('pdf_dosyasi', file);
+      formData.append('pdf_file', file);
       formData.append('pdf_type', pdfType);
       formData.append('dosya_adi', file.name);
       if (description) {

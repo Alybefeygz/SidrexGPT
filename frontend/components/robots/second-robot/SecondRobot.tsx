@@ -1,15 +1,30 @@
 "use client"
 
-import type React from "react"
-import { useState, useRef, useEffect } from "react"
-import SecondRobotChatBox from "./SecondRobotChatBox"
-import { useRobotChat } from "../../../hooks/use-api"
+import React, { useState, useRef, useEffect, useCallback, memo } from "react"
 import { toast } from "sonner"
+import { useRobotChat } from "@/hooks/use-api"
+import SecondRobotChatBox from "./SecondRobotChatBox"
 
 interface SecondRobotProps {
   onChatToggle: (robotId: string, isOpen: boolean) => void
   isOtherChatOpen: boolean
   isFloating?: boolean
+}
+
+interface ChatResponse {
+  answer: string;
+  citations?: any[];
+  context_used?: boolean;
+  response_time?: number;
+  session_id?: string;
+}
+
+interface Citation {
+  source: string
+  content: string
+  similarity: number
+  chunk_index: number
+  pdf_type: string
 }
 
 interface Message {
@@ -18,9 +33,12 @@ interface Message {
   isUser: boolean
   timestamp: Date
   status?: 'loading' | 'ok' | 'error'
+  citations?: Citation[]
+  context_used?: boolean
 }
 
-export default function SecondRobot({ onChatToggle, isOtherChatOpen, isFloating = false }: SecondRobotProps) {
+// ⚡ PERFORMANS: Memoized component
+const SecondRobot = memo(function SecondRobot({ onChatToggle, isOtherChatOpen, isFloating = false }: SecondRobotProps) {
   // Chat state
   const [isChatOpen, setIsChatOpen] = useState(false)
   const [messages, setMessages] = useState<Message[]>([
@@ -49,6 +67,11 @@ export default function SecondRobot({ onChatToggle, isOtherChatOpen, isFloating 
   // Robot Chat API integration
   const { sendMessage: sendChatMessage, loading: chatLoading } = useRobotChat('sidrexgpt-mag')
 
+  // ⚡ PERFORMANS: Memoized callbacks
+  const handleChatToggle = useCallback((robotId: string, isOpen: boolean) => {
+    onChatToggle(robotId, isOpen)
+  }, [onChatToggle])
+
   // Close chat when other chat opens
   useEffect(() => {
     if (isOtherChatOpen && isChatOpen) {
@@ -57,7 +80,8 @@ export default function SecondRobot({ onChatToggle, isOtherChatOpen, isFloating 
     }
   }, [isOtherChatOpen, isChatOpen])
 
-  const sendMessage = async () => {
+  // ⚡ PERFORMANS: Memoized sendMessage function
+  const sendMessage = useCallback(async () => {
     if (inputValue.trim() === "" || chatLoading) return
 
     const userMessage: Message = {
@@ -81,12 +105,12 @@ export default function SecondRobot({ onChatToggle, isOtherChatOpen, isFloating 
     setInputValue("")
 
     try {
-      const response = await sendChatMessage(messageText)
+      const response = await sendChatMessage(messageText) as ChatResponse
       
-      if (response && response.robot_response) {
+      if (response && response.answer) {
         const botResponse: Message = {
           id: loadingMessage.id, // Use the same ID to update
-          text: response.robot_response,
+          text: response.answer,
           isUser: false,
           timestamp: new Date(),
           status: 'ok'
@@ -115,15 +139,17 @@ export default function SecondRobot({ onChatToggle, isOtherChatOpen, isFloating 
       }
       setMessages((prev) => prev.map(msg => msg.id === loadingMessage.id ? errorResponse : msg));
     }
-  }
+  }, [inputValue, chatLoading, sendChatMessage])
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  // ⚡ PERFORMANS: Memoized handleKeyPress
+  const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
       sendMessage()
     }
-  }
+  }, [sendMessage])
 
-  const toggleChat = () => {
+  // ⚡ PERFORMANS: Memoized toggleChat
+  const toggleChat = useCallback(() => {
     if (!isChatOpen && buttonRef.current && !isFloating) {
       const rect = buttonRef.current.getBoundingClientRect()
       setChatPosition({
@@ -133,8 +159,8 @@ export default function SecondRobot({ onChatToggle, isOtherChatOpen, isFloating 
     }
     const newChatState = !isChatOpen
     setIsChatOpen(newChatState)
-    onChatToggle("second", newChatState)
-  }
+    handleChatToggle("second", newChatState)
+  }, [isChatOpen, isFloating, handleChatToggle])
 
   return (
     <>
@@ -203,4 +229,6 @@ export default function SecondRobot({ onChatToggle, isOtherChatOpen, isFloating 
       )}
     </>
   )
-}
+})
+
+export default SecondRobot

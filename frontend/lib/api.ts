@@ -11,12 +11,42 @@ console.log('🔍 Environment Variables:', {
   NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL
 });
 
+// ⚡ PERFORMANS: Response Cache için basit Map
+const responseCache = new Map();
+const CACHE_DURATION = 60000; // 1 dakika
+
 // Axios instance oluşturma
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 60000,
+  timeout: 30000,  // ⚡ PERFORMANS: 30 saniye timeout (eski: 60 saniye)
   withCredentials: true
 });
+
+// ⚡ PERFORMANS: Cache helper fonksiyonları
+function getCacheKey(config: any): string {
+  return `${config.method}-${config.url}-${JSON.stringify(config.params)}`;
+}
+
+function getCachedResponse(cacheKey: string) {
+  const cached = responseCache.get(cacheKey);
+  if (cached && (Date.now() - cached.timestamp < CACHE_DURATION)) {
+    return cached.data;
+  }
+  return null;
+}
+
+function setCachedResponse(cacheKey: string, data: any) {
+  responseCache.set(cacheKey, {
+    data,
+    timestamp: Date.now()
+  });
+  
+  // Cache boyutunu sınırla (maksimum 100 entry)
+  if (responseCache.size > 100) {
+    const firstKey = responseCache.keys().next().value;
+    responseCache.delete(firstKey);
+  }
+}
 
 // Helper function to get CSRF token from cookies
 function getCookie(name: string): string | null {
@@ -37,9 +67,71 @@ function getCookie(name: string): string | null {
     return cookieValue;
 }
 
+// CSRF token varlığını kontrol et
+function hasValidCSRFToken(): boolean {
+  const token = getCookie('csrftoken');
+  return token !== null && token.length > 0;
+}
+
+// CSRF token alma - zorunlu
+export const ensureCSRFToken = async (): Promise<void> => {
+  if (hasValidCSRFToken()) {
+    console.log('✅ CSRF token mevcut');
+    return;
+  }
+
+  try {
+    console.log('🔄 CSRF token alınıyor...');
+    await apiClient.get('/csrf/');
+    
+    // Token alındı mı kontrol et
+    if (!hasValidCSRFToken()) {
+      throw new Error('CSRF token alınamadı');
+    }
+    
+    console.log('✅ CSRF token başarıyla alındı');
+  } catch (error) {
+    console.error('❌ CSRF token alınırken hata:', error);
+    throw new Error('CSRF token alınamadı. Lütfen sayfayı yenileyin.');
+  }
+};
+
+// Auto-retry with CSRF token
+async function apiCallWithCSRF<T>(apiCall: () => Promise<T>, retryOnce = true): Promise<T> {
+  try {
+    return await apiCall();
+  } catch (error: any) {
+    // CSRF hatası ve retry hakkımız varsa
+    if (retryOnce && error.response?.status === 403 && 
+        error.response?.data?.detail?.includes('CSRF')) {
+      
+      console.log('🔄 CSRF hatası tespit edildi, token yenileniyor...');
+      await ensureCSRFToken();
+      return await apiCall(); // Tekrar dene
+    }
+    throw error;
+  }
+}
+
 // Request interceptor to add CSRF token and handle content type
 apiClient.interceptors.request.use(
   (config) => {
+    // ⚡ PERFORMANS: GET istekleri için cache kontrolü
+    if (config.method === 'get') {
+      const cacheKey = getCacheKey(config);
+      const cachedResponse = getCachedResponse(cacheKey);
+      if (cachedResponse) {
+        // Cache'den veri varsa, isteği iptal et ve cache'den döndür
+        (config as any).adapter = () => Promise.resolve({
+          data: cachedResponse,
+          status: 200,
+          statusText: 'OK (from cache)',
+          headers: {},
+          config
+        });
+      }
+    }
+    
     // Add CSRF token for all methods except GET and HEAD
     if (typeof window !== 'undefined' && config.method && !['GET', 'HEAD'].includes(config.method.toUpperCase())) {
       const csrfToken = getCookie('csrftoken');
@@ -76,18 +168,37 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Response interceptor - error handling için
+// Response interceptor for better error handling and token management
 apiClient.interceptors.response.use(
   (response) => {
+    // ⚡ PERFORMANS: GET isteklerini cache'le
+    if (response.config.method === 'get') {
+      const cacheKey = getCacheKey(response.config);
+      setCachedResponse(cacheKey, response.data);
+    }
+    
     return response;
   },
-  (error) => {
-    // 401 Unauthorized durumunda token'ı temizle ve login sayfasına yönlendir
+  async (error) => {
     if (error.response?.status === 401) {
+      // Token geçersizse kullanıcıyı login sayfasına yönlendir
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('authToken');
+        window.location.href = '/yonetim';
       }
     }
+    
+    // CSRF token hatası durumunda yeniden dene
+    if (error.response?.status === 403 && 
+        error.response?.data?.detail?.includes('CSRF')) {
+      try {
+        await apiClient.get('/csrf/');
+        // Original request'i yeniden dene
+        return apiClient.request(error.config);
+      } catch (csrfError) {
+        console.error('CSRF token yenileme hatası:', csrfError);
+      }
+    }
+    
     return Promise.reject(error);
   }
 );
@@ -96,19 +207,16 @@ apiClient.interceptors.response.use(
 export const api = {
   // Authentication endpoints
   auth: {
-    getCSRFToken: async () => {
-      // Yeni CSRF endpoint'ine GET isteği at
-      await apiClient.get('/csrf/');
-    },
+    getCSRFToken: () => ensureCSRFToken(),
+    
     login: async (credentials: { username: string; password: string }) => {
-      // Login isteğini gönder
-      const formData = new FormData();
-      formData.append('username', credentials.username);
-      formData.append('password', credentials.password);
-      return await apiClient.post('/rest-auth/login/', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
+      return apiCallWithCSRF(async () => {
+        const formData = new FormData();
+        formData.append('username', credentials.username);
+        formData.append('password', credentials.password);
+        return await apiClient.post('/rest-auth/login/', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
       });
     },
     
@@ -125,7 +233,7 @@ export const api = {
       });
     },
     
-    logout: () => apiClient.post('/rest-auth/logout/'),
+    logout: () => apiCallWithCSRF(async () => await apiClient.post('/rest-auth/logout/')),
     getUser: () => apiClient.get('/rest-auth/user/'),
   },
 
@@ -199,6 +307,43 @@ export const api = {
     create: (data: any) => apiClient.post('/robots/', data),
     update: (id: number, data: any) => apiClient.patch(`/robots/${id}/`, data),
     delete: (id: number) => apiClient.delete(`/robots/${id}/`),
+    
+    // PDF Yükleme
+    uploadPdf: (robotId: number, file: File) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      // Gerekirse ek veri de gönderebiliriz, örn: formData.append('pdf_type', 'beyan');
+      
+      return apiClient.post(`/robots/${robotId}/upload_pdf/`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+    },
+    
+    // PDF Silme
+    deletePdf: (pdfId: number) => {
+      // RobotPDFViewSet'in standart delete metodunu kullanıyoruz
+      return apiClient.delete(`/robot-pdfs/${pdfId}/`);
+    },
+
+    // PDF durumunu (aktif/pasif) değiştirme
+    togglePdfActive: (pdfId: number) => {
+      return apiClient.post(`/robot-pdfs/${pdfId}/toggle_active/`);
+    },
+
+    // PDF türünü değiştirme
+    changePdfType: (pdfId: number, pdfType: string) => {
+      return apiClient.post(`/robot-pdfs/${pdfId}/change_type/`, { pdf_type: pdfType });
+    },
+
+    // Robot PDF'lerini listeleme
+    listPdfs: (robotId: number) => apiClient.get(`/robots/${robotId}/pdf_dosyalari/`),
+
+    // Sohbet
+    chat: (slug: string, message: string, history: any[]) => {
+      // ... existing code ...
+    },
 
     // Robot PDF işlemleri
     getPDFs: (robotId: number) => apiClient.get(`/robots/${robotId}/pdf_dosyalari/`),

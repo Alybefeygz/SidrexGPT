@@ -15,6 +15,7 @@ import os
 from dotenv import load_dotenv
 import dj_database_url
 from datetime import timedelta
+from decouple import config
 
 # Load environment variables from .env file
 load_dotenv()
@@ -27,15 +28,48 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # ==============================================================================
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('SECRET_KEY')
+SECRET_KEY = config('SECRET_KEY')
 if not SECRET_KEY:
     raise ValueError("SECRET_KEY environment variable is required!")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 'yes')
+DEBUG = config('DEBUG', default=False, cast=bool)
 
 # Allowed hosts - production için mutlaka belirtilmeli
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'sidrexgpt-backend.onrender.com'] + [h.strip() for h in os.getenv('ALLOWED_HOSTS', '').split(',') if h.strip()]
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=lambda v: ['localhost', '127.0.0.1', 'sidrexgpt-backend.onrender.com'] + [h.strip() for h in v.split(',') if h.strip()])
+
+# ==============================================================================
+# GOOGLE DRIVE SERVICE ACCOUNT CONFIGURATION
+# ==============================================================================
+
+# Google Drive Klasör ID'si
+GOOGLE_DRIVE_FOLDER_ID = config('GOOGLE_DRIVE_FOLDER_ID')
+
+# Google Service Account Bilgileri - Environment Variables'tan al
+GOOGLE_SERVICE_ACCOUNT_INFO = {
+    'type': config('GOOGLE_SERVICE_ACCOUNT_TYPE', default='service_account'),
+    'project_id': config('GOOGLE_PROJECT_ID', default=''),
+    'private_key_id': config('GOOGLE_PRIVATE_KEY_ID', default=''),
+    'private_key': config('GOOGLE_PRIVATE_KEY', default='').replace('\\n', '\n'),
+    'client_email': config('GOOGLE_CLIENT_EMAIL', default=''),
+    'client_id': config('GOOGLE_CLIENT_ID', default=''),
+    'auth_uri': config('GOOGLE_AUTH_URI', default='https://accounts.google.com/o/oauth2/auth'),
+    'token_uri': config('GOOGLE_TOKEN_URI', default='https://oauth2.googleapis.com/token'),
+    'auth_provider_x509_cert_url': config('GOOGLE_AUTH_PROVIDER_X509_CERT_URL', default='https://www.googleapis.com/oauth2/v1/certs'),
+    'client_x509_cert_url': config('GOOGLE_CLIENT_X509_CERT_URL', default=''),
+    'universe_domain': config('GOOGLE_UNIVERSE_DOMAIN', default='googleapis.com')
+}
+
+# Legacy JSON dosyası desteği (backward compatibility)
+GOOGLE_DRIVE_SERVICE_ACCOUNT_FILE = os.path.join(BASE_DIR, config('GOOGLE_DRIVE_SERVICE_ACCOUNT_FILE_NAME', default='service_account.json'))
+
+# Supabase Bucket Ayarları
+SUPABASE_BUCKET_NAME = config('SUPABASE_BUCKET_NAME', default='sidrexgpt-bucket')
+
+# Supabase Storage Ayarları (Statik Varlıklar İçin)
+SUPABASE_URL = config('SUPABASE_URL', default='')
+SUPABASE_KEY = config('SUPABASE_SERVICE_ROLE_KEY', default='')
+SUPABASE_STATIC_BUCKET = config('SUPABASE_STATIC_BUCKET', default='sidrexgpt-bucket-static')
 
 # ==============================================================================
 # OPENROUTER API CONFIGURATION
@@ -66,6 +100,8 @@ INSTALLED_APPS = [
     # Custom apps
     'profiller.apps.ProfillerConfig',
     'robots.apps.RobotsConfig',
+    'medya.apps.MedyaConfig',
+    'products.apps.ProductsConfig',
     
     # Third party apps
     'rest_framework',
@@ -79,7 +115,6 @@ INSTALLED_APPS = [
     'django_extensions',
     'corsheaders',
     'knox',
-    'storages',  # AWS S3 entegrasyonu için eklendi
 ]
 
 MIDDLEWARE = [
@@ -178,83 +213,11 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 # Whitenoise, S3 ayarları aktif olmadığında kullanılacak
-if not os.getenv('AWS_STORAGE_BUCKET_NAME'):
-    STATICFILES_STORAGE = 'whitenoise.storage.WhiteNoiseStorage'
+STATICFILES_STORAGE = 'whitenoise.storage.WhiteNoiseStorage'
 
 # Media files
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / 'uploads'
-
-# ==============================================================================
-# AWS S3 STORAGE CONFIGURATION
-# ==============================================================================
-
-# Ortam değişkenlerinden AWS S3 ayarlarını oku
-AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
-AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
-AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME')
-AWS_S3_REGION_NAME = os.getenv('AWS_S3_REGION_NAME')
-AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com' if AWS_STORAGE_BUCKET_NAME else None
-AWS_S3_OBJECT_PARAMETERS = {'CacheControl': 'max-age=86400'}
-AWS_DEFAULT_ACL = os.getenv('AWS_DEFAULT_ACL', 'private')
-AWS_S3_FILE_OVERWRITE = os.getenv('AWS_S3_FILE_OVERWRITE', 'False').lower() in ('true', '1', 'yes')
-
-# Sadece production ortamında veya S3 bucket adı belirtilmişse S3'ü kullan
-if AWS_STORAGE_BUCKET_NAME:
-    # Statik dosyalar için S3 depolama
-    STATICFILES_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
-    # Yüklenen medya dosyaları (PDF'ler vb.) için S3 depolama
-    DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
-    
-    # Statik dosyaların S3'teki konumu
-    STATIC_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/static/"
-    # Medya dosyalarının S3'teki konumu
-    MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/media/"
-    
-    print("✅ AWS S3 storage is configured.")
-else:
-    print("⚠️  AWS S3 storage is not configured. Using local storage.")
-    # Geliştirme ortamında veya S3 ayarları yoksa yerel depolama kullanılır
-    STATICFILES_STORAGE = 'whitenoise.storage.WhiteNoiseStorage'
-    DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
-
-# ==============================================================================
-# SECURITY SETTINGS
-# ==============================================================================
-
-# Production security settings
-if not DEBUG:
-    # HTTPS settings
-    SECURE_SSL_REDIRECT = os.getenv('SECURE_SSL_REDIRECT', 'True').lower() == 'true'
-    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-    
-    # HSTS settings
-    SECURE_HSTS_SECONDS = int(os.getenv('SECURE_HSTS_SECONDS', '31536000'))
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    SECURE_HSTS_PRELOAD = True
-    
-    # Security headers
-    SECURE_BROWSER_XSS_FILTER = True
-    SECURE_CONTENT_TYPE_NOSNIFF = True
-    SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
-    
-    # Cookie security
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
-    SESSION_COOKIE_HTTPONLY = True
-    CSRF_COOKIE_HTTPONLY = False  # JavaScript erişimi için
-    
-    # Clickjacking protection
-    X_FRAME_OPTIONS = 'DENY'
-
-# CSRF settings
-CSRF_COOKIE_NAME = 'csrftoken'
-CSRF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'
-
-# Trusted origins for CSRF
-# Bu listenin CORS_ALLOWED_ORIGINS ile senkronize olması önemlidir.
-# Aşağıda CORS ayarları ile birlikte güncellenecektir.
-CSRF_TRUSTED_ORIGINS = []
 
 # ==============================================================================
 # CORS CONFIGURATION
@@ -278,21 +241,43 @@ if DEBUG:
         "http://localhost:3000",
     ])
 
-# CSRF ve Session Cookie Ayarları (Cross-Site için)
-CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS
+# ==============================================================================
+# ENHANCED CSRF CONFIGURATION FOR PRODUCTION
+# ==============================================================================
+
+# Domain ayarları - Environment'tan al
+CSRF_COOKIE_DOMAIN = config('CSRF_COOKIE_DOMAIN', default=None)
+SESSION_COOKIE_DOMAIN = config('SESSION_COOKIE_DOMAIN', default=None)
+
+# HTTPS kontrolü
+FORCE_HTTPS = config('FORCE_HTTPS', default=not DEBUG, cast=bool)
+CSRF_COOKIE_SECURE = FORCE_HTTPS
+SESSION_COOKIE_SECURE = FORCE_HTTPS
+
+# SameSite ayarları - Environment'a göre
+CROSS_DOMAIN = config('CROSS_DOMAIN', default=False, cast=bool)
 
 if DEBUG:
-    # Geliştirme ortamında SameSite Lax olabilir
-    SESSION_COOKIE_SAMESITE = 'Lax'
+    # Development: Esnek ayarlar
     CSRF_COOKIE_SAMESITE = 'Lax'
-else:
-    # Canlı ortamda cross-site istekler için 'None' olmalı
-    SESSION_COOKIE_SAMESITE = 'None'
+    SESSION_COOKIE_SAMESITE = 'Lax'
+    CSRF_COOKIE_SECURE = False
+    SESSION_COOKIE_SECURE = False
+elif CROSS_DOMAIN:
+    # Production + Cross Domain: Strict güvenlik
     CSRF_COOKIE_SAMESITE = 'None'
+    SESSION_COOKIE_SAMESITE = 'None'
+    # None kullanıyorsak HTTPS zorunlu
+    CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_SECURE = True
+else:
+    # Production + Same Domain: Maximum güvenlik
+    CSRF_COOKIE_SAMESITE = 'Strict'
+    SESSION_COOKIE_SAMESITE = 'Strict'
 
-# Cookie'lerin HTTPS üzerinden gönderilmesini zorunlu kıl
-SESSION_COOKIE_SECURE = not DEBUG
-CSRF_COOKIE_SECURE = not DEBUG
+# Trusted Origins - Environment'tan ekle
+ADDITIONAL_TRUSTED_ORIGINS = config('ADDITIONAL_TRUSTED_ORIGINS', default='', cast=lambda v: [x.strip() for x in v.split(',') if x.strip()])
+CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS + ADDITIONAL_TRUSTED_ORIGINS
 
 # CSRF cookie'sine JavaScript'in erişimine izin ver
 CSRF_COOKIE_HTTPONLY = False
@@ -320,9 +305,24 @@ CORS_ALLOW_HEADERS = [
     'user-agent',
     'x-csrftoken',
     'x-requested-with',
+    'cache-control',  # Yeni eklenen
+    'pragma',         # Yeni eklenen
 ]
-CORS_EXPOSE_HEADERS = ['content-type', 'x-csrftoken']
+CORS_EXPOSE_HEADERS = [
+    'content-type', 
+    'x-csrftoken',
+    'set-cookie',     # Yeni eklenen
+]
 CORS_PREFLIGHT_MAX_AGE = 86400  # 24 saat
+
+# Debug bilgisi
+if DEBUG:
+    print(f"🔐 CSRF Configuration:")
+    print(f"   - CSRF_COOKIE_SECURE: {CSRF_COOKIE_SECURE}")
+    print(f"   - CSRF_COOKIE_SAMESITE: {CSRF_COOKIE_SAMESITE}")
+    print(f"   - CSRF_COOKIE_DOMAIN: {CSRF_COOKIE_DOMAIN}")
+    print(f"   - CSRF_TRUSTED_ORIGINS: {CSRF_TRUSTED_ORIGINS}")
+    print(f"   - CROSS_DOMAIN: {CROSS_DOMAIN}")
 
 # ==============================================================================
 # REST FRAMEWORK CONFIGURATION
@@ -351,9 +351,8 @@ SITE_ID = 1
 ACCOUNT_EMAIL_VERIFICATION = 'none'
 ACCOUNT_EMAIL_REQUIRED = True  # Email hala gerekli ama giriş için değil
 ACCOUNT_USERNAME_REQUIRED = True  # Kullanıcı adı zorunlu
-ACCOUNT_AUTHENTICATION_METHOD = 'username'  # Kullanıcı adı ile giriş
 ACCOUNT_UNIQUE_EMAIL = True
-ACCOUNT_LOGIN_METHODS = ['username']  # Sadece kullanıcı adı ile giriş
+ACCOUNT_LOGIN_METHODS = {'username'}  # Sadece kullanıcı adı ile giriş
 
 # Login/Logout URLs
 LOGIN_URL = '/api/rest-auth/login/'
@@ -470,18 +469,3 @@ GUNICORN_TIMEOUT = 120  # 120 saniye
 
 # Django request timeout
 REQUEST_TIMEOUT = 60  # 60 saniye
-
-# ==============================================================================
-# AWS S3 MEDIA STORAGE SETTINGS (PRODUCTION ONLY)
-# ==============================================================================
-if not DEBUG:
-    AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
-    AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
-    AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME')
-    AWS_S3_REGION_NAME = os.getenv('AWS_S3_REGION_NAME', 'eu-central-1') # Varsayılan bölge, değiştirebilirsiniz
-    AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com'
-    AWS_S3_FILE_OVERWRITE = False
-
-    # Medya dosyaları için S3 depolaması
-    DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
-    MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/media/"

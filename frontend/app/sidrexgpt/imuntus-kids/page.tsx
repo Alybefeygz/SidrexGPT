@@ -13,10 +13,14 @@ export default function ThirdRobotPage() {
   
   // Robot'u slug ile al
   const { data: robotData, loading: robotLoading, error: robotError } = useRobotBySlug('sidrexgpt-kids')
-  const robotId = robotData?.robot?.id
+  const robotId = (robotData as any)?.id  // ✅ Type assertion ile düzeltildi
   
   // Robot ID varsa PDF'leri al
   const { data: pdfs, loading: pdfsLoading, error: pdfsError, refetch } = useRobotPDFList(robotId)
+
+  const handleChatToggle = (robotId: string, isOpen: boolean) => {
+    // ... existing code ...
+  }
 
   // Loading state
   if (robotLoading) {
@@ -63,29 +67,29 @@ export default function ThirdRobotPage() {
       </div>
 
       {/* Robot Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex flex-col items-center justify-center">
-          <h1 className="text-3xl font-bold mb-8" style={{ color: "#FFC429" }}>SidrexGPT Kids Asistanı</h1>
+          <h1 className="text-3xl font-bold mb-8" style={{ color: "#F2B831" }}>SidrexGPT Kids Asistanı</h1>
           
           {/* Robot ve PDF Yükleyici bölümü */}
           <div className="w-full grid grid-cols-2 gap-4">
             {/* Sol taraf - Robot */}
-            <div className="pl-32" style={{ marginTop: 'calc(10vh + 250px)' }}>
+            <div className="pl-40" style={{ marginTop: 'calc(10vh + 250px)' }}>
               <div className="flex flex-col items-center">
                 <ThirdRobot
-                  onChatToggle={() => {}}
+                  onChatToggle={handleChatToggle}
                   isOtherChatOpen={false}
                 />
               </div>
             </div>
             
             {/* Sağ taraf - PDF Yükleyici */}
-            <div className="pr-4 pl-12" style={{ marginTop: 'calc(5vh - 50px)' }}>
-              {canEditPDF() ? (
+            <div className="pr-4 pl-20" style={{ marginTop: 'calc(5vh - 50px)' }}>
+              {canEditPDF() && robotId ? (
                 <PDFUploader 
-                  activeColor="#FFC429" 
+                  activeColor="#F2B831"
                   robotId={robotId}
-                  initialPdfs={pdfs || []}
+                  initialPdfs={(pdfs as any) || []}  // ✅ Type assertion ile düzeltildi
                   refetchPdfs={refetch}
                 />
               ) : (

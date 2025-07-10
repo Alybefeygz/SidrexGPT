@@ -6,6 +6,7 @@ import FloatingSecondRobot from "../components/robots/FloatingSecondRobot"
 import FloatingThirdRobot from "../components/robots/FloatingThirdRobot"
 import { Toaster } from "@/components/ui/toaster"
 import { usePathname } from "next/navigation"
+import { AssetProvider } from "../contexts/AssetContext"
 
 export default function ClientLayout({
   children,
@@ -31,10 +32,10 @@ export default function ClientLayout({
   }
 
   return (
-    <>
+    <AssetProvider>
       {children}
       {shouldShowRobot && getRobotComponent()}
       <Toaster />
-    </>
+    </AssetProvider>
   )
 }

@@ -5,12 +5,22 @@ import { useRef, useEffect } from "react"
 import { Send } from "lucide-react"
 import ReactMarkdown from 'react-markdown'
 
+interface Citation {
+  source: string
+  content: string
+  similarity: number
+  chunk_index: number
+  pdf_type: string
+}
+
 interface Message {
   id: number
   text: string
   isUser: boolean
   timestamp: Date
   status?: 'loading' | 'ok' | 'error'
+  citations?: Citation[]
+  context_used?: boolean
 }
 
 interface SecondRobotChatBoxProps {

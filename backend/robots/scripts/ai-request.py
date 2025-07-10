@@ -17,12 +17,14 @@ logger = logging.getLogger(__name__)
 
 # Available models with fallback
 MODELS = [
-    "qwen/qwen3-30b-a3b:free",                    # Ana model (dengeli)
-    "openrouter/cypher-alpha:free",               # Yedek 1 (uzun context)
-    "meta-llama/llama-4-scout:free",              # Yedek 2 (görsel anlama)
-    "qwen/qwen3-14b:free",                        # Yedek 3 (çok dilli)
-    "deepseek/deepseek-r1-distill-llama-70b:free",# Yedek 4 (güçlü)
-    "qwen/qwen3-4b:free"                          # Yedek 5 (hızlı)
+    "google/gemini-flash-1.5:free",              # Google Gemini (çok uzun context, kurallara uyumlu)
+    "deepseek/deepseek-r1-distill-llama-70b:free",# DeepSeek (güçlü, kurallara uyumlu)
+    "qwen/qwen3-30b-a3b:free",                   # Qwen (dengeli)
+    "anthropic/claude-3.5-haiku:beta",           # Claude (daha az öncelikli)
+    "openrouter/cypher-alpha:free",              # Yedek (uzun context)
+    "meta-llama/llama-3.2-3b-instruct:free",     # Llama 3.2 (gelişmiş)
+    "qwen/qwen3-14b:free",                       # Yedek (çok dilli)
+    "qwen/qwen3-4b:free"                         # Yedek (hızlı)
 ]
 
 class OpenRouterAIHandler:
@@ -82,7 +84,7 @@ class OpenRouterAIHandler:
         self.current_model_index = (self.current_model_index + 1) % len(available_models)
         return available_models[self.current_model_index]
     
-    def make_chat_request(self, messages: list, model: str = None, max_retries: int = 3) -> Dict[str, Any]:
+    def make_chat_request(self, messages: list, model: str = None, max_retries: int = 3, max_tokens: int = 10000) -> Dict[str, Any]:
         """
         Make a chat completion request to OpenRouter with retry and model rotation
         
@@ -90,6 +92,7 @@ class OpenRouterAIHandler:
             messages: List of chat messages
             model: Model to use (if None, will use model rotation)
             max_retries: Maximum number of retries per model
+            max_tokens: Maximum tokens for response (default 10000)
             
         Returns:
             Response data as dictionary
@@ -107,12 +110,19 @@ class OpenRouterAIHandler:
             data = {
                 "model": model,
                 "messages": messages,
-                "max_tokens": 1000,
+                "max_tokens": max_tokens,
                 "temperature": 0.7,
                 "top_p": 1,
                 "frequency_penalty": 0,
                 "presence_penalty": 0
             }
+            
+            # Debug: İstek verilerini logla
+            total_content_length = sum(len(msg.get('content', '')) for msg in messages)
+            print(f"DEBUG OpenRouter İsteği - Model: {model}")
+            print(f"DEBUG OpenRouter İsteği - Max Tokens: {max_tokens}")
+            print(f"DEBUG OpenRouter İsteği - Toplam İçerik Uzunluğu: {total_content_length} karakter")
+            print(f"DEBUG OpenRouter İsteği - Mesaj Sayısı: {len(messages)}")
             
             try:
                 response = self.session.post(url, json=data)
@@ -121,7 +131,19 @@ class OpenRouterAIHandler:
                 # Success - reset error count for this model
                 self.model_error_counts[model] = max(0, self.model_error_counts[model] - 1)
                 logger.info(f"Successful chat request with model: {model}")
-                return response.json()
+                
+                # Debug: Yanıt bilgilerini logla
+                response_data = response.json()
+                if 'choices' in response_data and response_data['choices']:
+                    response_content = response_data['choices'][0]['message']['content']
+                    print(f"DEBUG OpenRouter Yanıtı - İçerik Uzunluğu: {len(response_content)} karakter")
+                    print(f"DEBUG OpenRouter Yanıtı - İlk 100 karakter: {response_content[:100]}")
+                
+                if 'usage' in response_data:
+                    usage = response_data['usage']
+                    print(f"DEBUG OpenRouter Yanıtı - Token Kullanımı: {usage}")
+                
+                return response_data
                 
             except requests.exceptions.HTTPError as e:
                 self.model_error_counts[model] += 1
@@ -174,7 +196,7 @@ class OpenRouterAIHandler:
             logger.error(f"Failed to get models: {e}")
             raise
     
-    def ask_question(self, question: str, model: str = None, system_prompt: Optional[str] = None) -> str:
+    def ask_question(self, question: str, model: str = None, system_prompt: Optional[str] = None, max_tokens: int = 10000) -> str:
         """
         Ask a simple question to the AI
         
@@ -182,6 +204,7 @@ class OpenRouterAIHandler:
             question: The question to ask
             model: Model to use (if None, will use model rotation)
             system_prompt: Optional system prompt to set AI behavior
+            max_tokens: Maximum tokens for response (default 10000)
             
         Returns:
             AI response as string
@@ -196,7 +219,7 @@ class OpenRouterAIHandler:
         messages.append({"role": "user", "content": question})
         
         try:
-            response = self.make_chat_request(messages, model)
+            response = self.make_chat_request(messages, model, max_tokens=max_tokens)
             
             # Check if response contains an error
             if "error" in response:
@@ -213,19 +236,20 @@ class OpenRouterAIHandler:
             logger.error(f"Error asking question: {e}")
             return f"Üzgünüm, şu anda teknik bir sorun yaşıyorum. Lütfen daha sonra tekrar deneyin."
     
-    def chat_with_history(self, messages: list, model: str = None) -> str:
+    def chat_with_history(self, messages: list, model: str = None, max_tokens: int = 4000) -> str:
         """
         Chat with conversation history
         
         Args:
             messages: Full conversation history
             model: Model to use (if None, will use model rotation)
+            max_tokens: Maximum tokens for response (default 4000)
             
         Returns:
             AI response as string
         """
         try:
-            response = self.make_chat_request(messages, model)
+            response = self.make_chat_request(messages, model, max_tokens=max_tokens)
             
             # Check if response contains an error
             if "error" in response:
@@ -245,8 +269,48 @@ def test_openrouter():
     print("🤖 SidrexGPT - OpenRouter AI Test Starting...")
     print("=" * 50)
     
+    # Try to get API key from Django settings if available
+    api_key = None
+    try:
+        # Try to load Django settings
+        import sys
+        import os
+        
+        # Add the backend directory to Python path
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        backend_dir = os.path.dirname(os.path.dirname(current_dir))
+        if backend_dir not in sys.path:
+            sys.path.insert(0, backend_dir)
+        
+        # Setup Django
+        os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
+        import django
+        django.setup()
+        
+        from django.conf import settings
+        api_key = getattr(settings, 'OPENROUTER_API_KEY', None)
+        
+        if api_key:
+            print(f"✅ API key loaded from Django settings")
+        else:
+            print("⚠️  No API key found in Django settings")
+            
+    except Exception as e:
+        print(f"⚠️  Could not load Django settings: {e}")
+        # Fallback to environment variable
+        api_key = os.getenv('OPENROUTER_API_KEY')
+        if api_key:
+            print(f"✅ API key loaded from environment")
+        else:
+            print("❌ No API key found in environment either")
+            return
+    
+    if not api_key:
+        print("❌ No API key available for testing")
+        return
+
     # Initialize handler
-    ai_handler = OpenRouterAIHandler()
+    ai_handler = OpenRouterAIHandler(api_key=api_key)
     
     # Test 1: Get available models
     print("\n📋 Available Models:")
@@ -348,20 +412,60 @@ def interactive_chat():
 
 def main():
     """
-    Main function
+    Main function - handles command line arguments for API integration
     """
     import sys
+    import argparse
     
-    if len(sys.argv) > 1:
-        if sys.argv[1] == "test":
-            test_openrouter()
-        elif sys.argv[1] == "chat":
-            interactive_chat()
+    parser = argparse.ArgumentParser(description='SidrexGPT AI Request Handler')
+    parser.add_argument('--api-key', required=False, help='OpenRouter API key')
+    parser.add_argument('--prompt', required=False, help='JSON formatted messages')
+    parser.add_argument('--model', help='AI model to use')
+    parser.add_argument('--max-tokens', type=int, default=10000, help='Maximum tokens')
+    
+    # Legacy support for test/chat commands
+    parser.add_argument('command', nargs='?', choices=['test', 'chat'], help='Legacy commands')
+    
+    try:
+        args = parser.parse_args()
+        
+        # Handle API integration mode (--api-key and --prompt provided)
+        if args.api_key and args.prompt:
+            try:
+                messages = json.loads(args.prompt)
+                ai_handler = OpenRouterAIHandler(api_key=args.api_key)
+                response = ai_handler.chat_with_history(messages, model=args.model, max_tokens=args.max_tokens)
+                
+                # Print response to stdout for subprocess capture
+                print(response)
+                return
+                
+            except json.JSONDecodeError as e:
+                print(f"JSON Parse Error: {e}")
+                sys.exit(1)
+            except Exception as e:
+                print(f"AI Request Error: {e}")
+                sys.exit(1)
+        
+        # Handle legacy mode (test/chat commands)
+        elif args.command:
+            if args.command == "test":
+                test_openrouter()
+            elif args.command == "chat":
+                interactive_chat()
         else:
-            print("Usage: python ai-request.py [test|chat]")
-    else:
-        # Default: run test
-        test_openrouter()
+            # Default behavior - show help or run test
+            if len(sys.argv) == 1:
+                test_openrouter()
+            else:
+                parser.print_help()
+                
+    except SystemExit:
+        # argparse calls sys.exit on error, re-raise it
+        raise
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":

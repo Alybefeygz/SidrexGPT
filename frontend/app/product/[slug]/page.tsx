@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import SecondRobot from "@/components/robots/second-robot/SecondRobot"
 import ThirdRobot from "@/components/robots/third-robot/ThirdRobot"
-import PDFUploader from '@/components/PDFUploader'
+import PDFUploader from "@/components/PDFUploader"
 
 // Product data - in a real app this would come from a database
 const productData = {
@@ -792,11 +792,14 @@ export default function ProductPage({ params }: ProductPageProps) {
         </div>
       )}
 
-      <PDFUploader 
-        robotId={product.id} 
-        initialPdfs={[]} 
-        refetchPdfs={() => {}}
-      />
+      <div style={{ display: 'none' }}>
+        <PDFUploader 
+          robotId={product.id} 
+          initialPdfs={[]} 
+          refetchPdfs={() => {}}
+          activeColor=""
+        />
+      </div>
     </div>
   )
 }

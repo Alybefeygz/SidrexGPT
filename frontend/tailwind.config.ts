@@ -8,6 +8,21 @@ const config: Config = {
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
     "*.{js,ts,jsx,tsx,mdx}"
   ],
+  safelist: [
+    // Product card gradient backgrounds
+    'bg-gradient-to-br',
+    'from-orange-100',
+    'via-yellow-50', 
+    'to-orange-200',
+    'from-blue-100',
+    'via-indigo-50',
+    'to-purple-200',
+    'from-emerald-100',
+    'via-teal-50',
+    'to-cyan-200',
+    // Other combinations
+    'bg-gray-50'
+  ],
   theme: {
   	extend: {
   		colors: {

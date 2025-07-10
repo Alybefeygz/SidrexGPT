@@ -12,12 +12,22 @@ interface FirstRobotProps {
   isFloating?: boolean
 }
 
+interface Citation {
+  source: string
+  content: string
+  similarity: number
+  chunk_index: number
+  pdf_type: string
+}
+
 interface Message {
   id: number
   text: string
   isUser: boolean
   timestamp: Date
   status?: 'loading' | 'ok' | 'error'
+  citations?: Citation[]
+  context_used?: boolean
 }
 
 export default function FirstRobot({ onChatToggle, isOtherChatOpen, isFloating = false }: FirstRobotProps) {
@@ -43,7 +53,7 @@ export default function FirstRobot({ onChatToggle, isOtherChatOpen, isFloating =
   const [chatPosition, setChatPosition] = useState({ top: 0, left: 0 })
 
   // Robot Chat API integration
-  const { sendMessage: sendChatMessage, loading: chatLoading } = useRobotChat('sidrexgpt')
+  const { sendMessage: sendChatMessage, loading: chatLoading } = useRobotChat('ana-robot')
 
   // Animation state
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
@@ -130,13 +140,16 @@ export default function FirstRobot({ onChatToggle, isOtherChatOpen, isFloating =
     try {
       const response = await sendChatMessage(messageText)
       
-      if (response && response.robot_response) {
+      if (response && (response as any).answer) {
+        const apiResponse = response as any
         const botResponse: Message = {
           id: loadingMessage.id, // Use the same ID to update
-          text: response.robot_response,
+          text: apiResponse.answer,
           isUser: false,
           timestamp: new Date(),
-          status: 'ok'
+          status: 'ok',
+          citations: apiResponse.citations || [],
+          context_used: apiResponse.context_used || false
         }
         setMessages((prev) => prev.map(msg => msg.id === loadingMessage.id ? botResponse : msg))
       } else {

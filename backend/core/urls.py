@@ -20,7 +20,13 @@ from django.http import JsonResponse
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
+from rest_framework.routers import DefaultRouter
+from medya.api.views import MedyaViewSet, StatikVarliklarView
 from .views import get_csrf_token
+
+# API Router'ı oluştur
+router = DefaultRouter()
+router.register(r'medya', MedyaViewSet)
 
 def health_check(request):
     """Health check endpoint for Render.com"""
@@ -34,7 +40,10 @@ def health_check(request):
             'profiles': '/api/profile/profilleri/',
             'robots': '/api/robots/',
             'brands': '/api/brands/',
-            'robot_pdfs': '/api/robot-pdfs/'
+            'robot_pdfs': '/api/robot-pdfs/',
+            'medya': '/api/medya/',
+            'static_assets': '/api/statik-varliklar/',
+            'products': '/api/products/'
         }
     })
 
@@ -46,6 +55,9 @@ urlpatterns = [
     path('api/rest-auth/registration/', include('dj_rest_auth.registration.urls')),  # Bu satır düzeltildi
     path('api/', include('profiller.api.urls')),
     path('api/', include('robots.api.urls')),  # Brand API'si için ana URL'yi güncelle
+    path('api/', include(router.urls)),  # Medya API'si için router
+    path('api/statik-varliklar/', StatikVarliklarView.as_view(), name='statik-varliklar'),
+    path('api/products/', include('products.api.urls')),  # Products API
     path('api/csrf/', get_csrf_token, name='get_csrf_token'),  # Yeni CSRF endpoint
 ]
 

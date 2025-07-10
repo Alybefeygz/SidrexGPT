@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from robots.models import Robot, RobotPDF, Brand
+from robots.utils import upload_pdf_to_drive
 
 
 class RobotPDFSerializer(serializers.ModelSerializer):
@@ -42,92 +43,44 @@ class RobotSerializer(serializers.ModelSerializer):
 
 class RobotPDFCreateSerializer(serializers.ModelSerializer):
     robot_id = serializers.IntegerField()
-    pdf_dosyasi = serializers.FileField(required=False)
+    pdf_file = serializers.FileField(required=False, write_only=True, help_text='PDF dosyası yüklemek için kullanılır.')
+    pdf_dosyasi = serializers.CharField(required=False, help_text='Google Drive linki olarak da gönderilebilir.')
     
     class Meta:
         model = RobotPDF
-        fields = ['robot_id', 'pdf_dosyasi', 'dosya_adi', 'aciklama', 'is_active', 'pdf_type']
+        fields = ['robot_id', 'pdf_file', 'pdf_dosyasi', 'dosya_adi', 'aciklama', 'is_active', 'pdf_type']
         extra_kwargs = {
+            'pdf_file': {
+                'required': False,
+                'help_text': 'Yeni PDF dosyası yüklemek için.'
+            },
             'pdf_dosyasi': {
                 'required': False,
-                'help_text': 'Mevcut PDF dosyasını değiştirmek için yeni dosya seçin. Boş bırakırsanız mevcut dosya korunur.'
+                'help_text': 'Google Drive linki olarak da gönderilebilir.'
             }
         }
     
-    def validate_robot_id(self, value):
-        try:
-            Robot.objects.get(id=value)
-            return value
-        except Robot.DoesNotExist:
-            raise serializers.ValidationError(f"Robot ID {value} bulunamadı.")
-    
     def validate(self, data):
-        """Genel validation - create vs update için farklı kurallar"""
-        # Update işleminde PDF dosyası opsiyonel
-        if self.instance:  # Update işlemi
-            return data
-        
-        # Create işleminde PDF dosyası zorunlu
-        if not data.get('pdf_dosyasi'):
-            raise serializers.ValidationError({'pdf_dosyasi': 'Yeni PDF oluştururken dosya zorunludur.'})
-            
+        if not data.get('pdf_file') and not data.get('pdf_dosyasi'):
+            raise serializers.ValidationError({'pdf_file': 'Yeni PDF oluştururken dosya yükleyin veya Google Drive linki girin.'})
         return data
-    
-    def to_representation(self, instance):
-        """Instance'ı serialize ederken robot_id ve PDF bilgilerini düzgün döndür"""
-        representation = super().to_representation(instance)
-        
-        # Robot ID'yi ekle
-        if hasattr(instance, 'robot') and instance.robot:
-            representation['robot_id'] = instance.robot.id
-        
-        # PDF dosyası varsa URL'ini ekle
-        if hasattr(instance, 'pdf_dosyasi') and instance.pdf_dosyasi:
-            request = self.context.get('request')
-            if request:
-                representation['pdf_dosyasi'] = request.build_absolute_uri(instance.pdf_dosyasi.url)
-            else:
-                representation['pdf_dosyasi'] = instance.pdf_dosyasi.url
-                
-        return representation
     
     def create(self, validated_data):
         robot_id = validated_data.pop('robot_id')
         robot = Robot.objects.get(id=robot_id)
+        pdf_file = validated_data.pop('pdf_file', None)
+        pdf_link = validated_data.pop('pdf_dosyasi', None)
+        dosya_adi = validated_data.get('dosya_adi')
+        # Eğer dosya upload edildiyse Google Drive'a yükle
+        if pdf_file:
+            link = upload_pdf_to_drive(pdf_file, dosya_adi or pdf_file.name)
+        elif pdf_link:
+            link = pdf_link
+        else:
+            raise serializers.ValidationError({'pdf_file': 'PDF dosyası veya linki zorunludur.'})
+        validated_data['pdf_dosyasi'] = link
         validated_data['robot'] = robot
         return super().create(validated_data)
-    
-    def update(self, instance, validated_data):
-        # Debug için log
-        print(f"UPDATE PDF - Instance ID: {instance.id}, Validated Data: {validated_data}")
-        
-        robot_id = validated_data.pop('robot_id', None)
-        if robot_id:
-            try:
-                robot = Robot.objects.get(id=robot_id)
-                validated_data['robot'] = robot
-                print(f"Robot ID {robot_id} bulundu: {robot.name}")
-            except Robot.DoesNotExist:
-                print(f"Robot ID {robot_id} bulunamadı!")
-                raise serializers.ValidationError(f"Robot ID {robot_id} bulunamadı.")
-        
-        # PDF dosyası gönderilmediyse mevcut dosyayı koru
-        pdf_dosyasi = validated_data.get('pdf_dosyasi', None)
-        if pdf_dosyasi is None:
-            validated_data.pop('pdf_dosyasi', None)
-            
-        # PDF türü değiştiyse ilgili alanları güncelle
-        if 'pdf_type' in validated_data:
-            pdf_type = validated_data['pdf_type']
-            validated_data.update({
-                'has_rules': pdf_type == 'kural',
-                'has_role': pdf_type == 'rol',
-                'has_info': pdf_type == 'bilgi',
-                'has_declaration': pdf_type == 'beyan'
-            })
-            
-        print(f"Final validated data: {validated_data}")
-        return super().update(instance, validated_data)
 
 
 class ChatMessageSerializer(serializers.Serializer):

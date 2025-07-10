@@ -1,9 +1,17 @@
 "use client"
 
 import type React from "react"
-import { useRef, useEffect } from "react"
-import { Send } from "lucide-react"
+import { useRef, useEffect, useState } from "react"
+import { Send, BookOpen, Info } from "lucide-react"
 import ReactMarkdown from 'react-markdown'
+
+interface Citation {
+  source: string
+  content: string
+  similarity: number
+  chunk_index: number
+  pdf_type: string
+}
 
 interface Message {
   id: number
@@ -11,6 +19,8 @@ interface Message {
   isUser: boolean
   timestamp: Date
   status?: 'loading' | 'ok' | 'error'
+  citations?: Citation[]
+  context_used?: boolean
 }
 
 interface FirstRobotChatBoxProps {
@@ -37,6 +47,7 @@ export default function FirstRobotChatBox({
   isLoading = false,
 }: FirstRobotChatBoxProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const [expandedCitations, setExpandedCitations] = useState<Set<number>>(new Set())
 
   // Auto-scroll to bottom when new messages arrive - only scroll within chatbox container
   useEffect(() => {
@@ -47,6 +58,38 @@ export default function FirstRobotChatBox({
       }
     }
   }, [messages])
+
+  const toggleCitationExpansion = (messageId: number) => {
+    setExpandedCitations(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(messageId)) {
+        newSet.delete(messageId)
+      } else {
+        newSet.add(messageId)
+      }
+      return newSet
+    })
+  }
+
+  const getPdfTypeColor = (pdfType: string) => {
+    switch (pdfType) {
+      case 'beyan': return 'bg-red-100 text-red-700 border-red-200'
+      case 'rol': return 'bg-purple-100 text-purple-700 border-purple-200'
+      case 'kural': return 'bg-orange-100 text-orange-700 border-orange-200'
+      case 'bilgi': return 'bg-blue-100 text-blue-700 border-blue-200'
+      default: return 'bg-gray-100 text-gray-700 border-gray-200'
+    }
+  }
+
+  const getPdfTypeIcon = (pdfType: string) => {
+    switch (pdfType) {
+      case 'beyan': return '🚨'
+      case 'rol': return '🔴'
+      case 'kural': return '🟠'
+      case 'bilgi': return '📘'
+      default: return '📄'
+    }
+  }
 
   return (
     <div
@@ -93,19 +136,72 @@ export default function FirstRobotChatBox({
                     <span className="animate-bounce" style={{ animationDelay: "0.4s" }}>.</span>
                   </p>
                 ) : (
-                  <p className="text-sm">
+                  <div className="text-sm">
                     {message.isUser ? (
-                      message.text
+                      <p>{message.text}</p>
                     ) : (
-                      <ReactMarkdown
-                        components={{
-                          strong: ({ node, ...props }) => <span className="font-bold" {...props} />,
-                        }}
-                      >
-                        {message.text}
-                      </ReactMarkdown>
+                      <>
+                        <ReactMarkdown
+                          components={{
+                            strong: ({ node, ...props }) => <span className="font-bold" {...props} />,
+                          }}
+                        >
+                          {message.text}
+                        </ReactMarkdown>
+                        
+                        {/* Citations Section */}
+                        {message.citations && message.citations.length > 0 && (
+                          <div className="mt-3 pt-3 border-t border-gray-200">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center space-x-2">
+                                <BookOpen size={14} className="text-gray-500" />
+                                <span className="text-xs text-gray-600 font-medium">
+                                  Kaynaklar ({message.citations.length})
+                                </span>
+                                {message.context_used && (
+                                  <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
+                                    RAG Aktif
+                                  </span>
+                                )}
+                              </div>
+                              <button
+                                onClick={() => toggleCitationExpansion(message.id)}
+                                className="text-xs text-blue-600 hover:text-blue-800"
+                              >
+                                {expandedCitations.has(message.id) ? 'Gizle' : 'Göster'}
+                              </button>
+                            </div>
+                            
+                            {expandedCitations.has(message.id) && (
+                              <div className="space-y-2">
+                                {message.citations.map((citation, index) => (
+                                  <div 
+                                    key={index} 
+                                    className={`p-2 rounded text-xs border ${getPdfTypeColor(citation.pdf_type)}`}
+                                  >
+                                    <div className="flex items-center justify-between mb-1">
+                                      <div className="flex items-center space-x-1">
+                                        <span>{getPdfTypeIcon(citation.pdf_type)}</span>
+                                        <span className="font-medium truncate max-w-[200px]">
+                                          {citation.source}
+                                        </span>
+                                      </div>
+                                      <span className="text-xs opacity-70">
+                                        %{Math.round(citation.similarity * 100)}
+                                      </span>
+                                    </div>
+                                    <p className="text-xs opacity-80 line-clamp-2">
+                                      {citation.content}
+                                    </p>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </>
                     )}
-                  </p>
+                  </div>
                 )}
               </div>
             </div>

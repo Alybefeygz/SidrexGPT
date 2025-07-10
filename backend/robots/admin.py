@@ -1,5 +1,6 @@
 from django.contrib import admin
-from .models import Robot, RobotPDF, Brand
+from .models import Robot, RobotPDF, Brand, RobotSystemPrompt
+from django.utils.html import format_html
 
 # Register your models here.
 
@@ -9,6 +10,13 @@ class RobotPDFInline(admin.TabularInline):
     readonly_fields = ['yukleme_zamani', 'has_rules', 'has_role', 'has_info', 'has_declaration']
     fields = ['pdf_dosyasi', 'dosya_adi', 'aciklama', 'is_active', 'pdf_type', 'has_rules', 'has_role', 'has_info', 'has_declaration', 'yukleme_zamani']
 
+
+class RobotSystemPromptInline(admin.TabularInline):
+    model = RobotSystemPrompt
+    extra = 0
+    fields = ['prompt_type', 'is_active', 'priority', 'topic_keywords', 'prompt_content']
+    readonly_fields = []
+
 @admin.register(Robot)
 class RobotAdmin(admin.ModelAdmin):
     list_display = ['name', 'product_name', 'brand', 'get_pdf_count', 'get_active_pdf_count', 'yaratilma_zamani', 'guncellenme_zamani']
@@ -16,7 +24,7 @@ class RobotAdmin(admin.ModelAdmin):
     search_fields = ['name', 'product_name', 'brand__name']
     readonly_fields = ['yaratilma_zamani', 'guncellenme_zamani']
     list_editable = ['brand']
-    inlines = [RobotPDFInline]
+    inlines = [RobotPDFInline, RobotSystemPromptInline]
     
     def get_pdf_count(self, obj):
         return obj.pdf_dosyalari.count()
@@ -29,14 +37,20 @@ class RobotAdmin(admin.ModelAdmin):
 
 @admin.register(RobotPDF)
 class RobotPDFAdmin(admin.ModelAdmin):
-    list_display = ['robot', 'dosya_adi', 'is_active', 'pdf_type', 'has_rules', 'has_role', 'has_info', 'has_declaration', 'pdf_dosyasi', 'yukleme_zamani']
+    list_display = ['robot', 'dosya_adi', 'is_active', 'pdf_type', 'has_rules', 'has_role', 'has_info', 'has_declaration', 'pdf_link', 'yukleme_zamani']
     list_filter = ['is_active', 'pdf_type', 'has_rules', 'has_role', 'has_info', 'has_declaration', 'yukleme_zamani', 'robot']
     search_fields = ['robot__name', 'dosya_adi']
-    readonly_fields = ['yukleme_zamani', 'has_rules', 'has_role', 'has_info', 'has_declaration']
+    readonly_fields = ['yukleme_zamani', 'has_rules', 'has_role', 'has_info', 'has_declaration', 'pdf_link']
     list_editable = ['is_active', 'pdf_type']
     
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('robot')
+
+    def pdf_link(self, obj):
+        if obj.pdf_dosyasi:
+            return format_html('<a href="{}" target="_blank">PDF Linki</a>', obj.pdf_dosyasi)
+        return "-"
+    pdf_link.short_description = "PDF Linki (Google Drive)"
 
 
 @admin.register(Brand)
@@ -166,3 +180,43 @@ class BrandAdmin(admin.ModelAdmin):
         if obj and obj.name == 'Sidrex':
             return False
         return super().has_delete_permission(request, obj)
+
+
+@admin.register(RobotSystemPrompt)
+class RobotSystemPromptAdmin(admin.ModelAdmin):
+    list_display = ['robot', 'prompt_type', 'is_active', 'priority', 'get_keywords_preview', 'created_at']
+    list_filter = ['prompt_type', 'is_active', 'robot', 'created_at']
+    search_fields = ['robot__name', 'prompt_content', 'topic_keywords']
+    readonly_fields = ['created_at', 'updated_at']
+    list_editable = ['is_active', 'priority']
+    
+    fieldsets = (
+        ('Temel Bilgiler', {
+            'fields': ('robot', 'prompt_type', 'is_active', 'priority')
+        }),
+        ('Konu Hedefleme', {
+            'fields': ('topic_keywords',),
+            'description': 'Bu prompt hangi konularda kullanılacak? (virgülle ayırın)'
+        }),
+        ('Prompt İçeriği', {
+            'fields': ('prompt_content',),
+            'classes': ['wide']
+        }),
+        ('Zaman Bilgileri', {
+            'fields': ('created_at', 'updated_at')
+        }),
+    )
+    
+    def get_keywords_preview(self, obj):
+        """Anahtar kelimelerin önizlemesi"""
+        keywords = obj.get_keywords_list()
+        if keywords:
+            preview = ', '.join(keywords[:3])
+            if len(keywords) > 3:
+                preview += f" (+{len(keywords)-3})"
+            return preview
+        return "Tüm konular"
+    get_keywords_preview.short_description = 'Anahtar Kelimeler'
+    
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('robot')

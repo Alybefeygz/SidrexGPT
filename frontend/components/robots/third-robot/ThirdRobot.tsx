@@ -12,6 +12,14 @@ interface ThirdRobotProps {
   isFloating?: boolean
 }
 
+interface ChatResponse {
+  answer: string;
+  citations?: any[];
+  context_used?: boolean;
+  response_time?: number;
+  session_id?: string;
+}
+
 interface Message {
   id: number
   text: string
@@ -81,12 +89,12 @@ export default function ThirdRobot({ onChatToggle, isOtherChatOpen, isFloating =
     setInputValue("")
 
     try {
-      const response = await sendChatMessage(messageText)
+      const response = await sendChatMessage(messageText) as ChatResponse
       
-      if (response && response.robot_response) {
+      if (response && response.answer) {
         const botResponse: Message = {
           id: loadingMessage.id, // Use the same ID to update
-          text: response.robot_response,
+          text: response.answer,
           isUser: false,
           timestamp: new Date(),
           status: 'ok'

@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.renderers import JSONRenderer, BrowsableAPIRenderer
 from rest_framework.views import APIView
+from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.reverse import reverse
 from robots.models import Robot, RobotPDF, Brand
 from .permissions import CanAccessRobotData, CanAccessBrandData
@@ -11,13 +12,22 @@ from .serializers import (
     RobotSerializer, RobotPDFSerializer, RobotPDFCreateSerializer,
     ChatMessageSerializer
 )
+from robots.services import upload_pdf_to_services, get_robot_pdf_contents_for_ai
+from robots.rag_services import RAGService
 from rest_framework.throttling import UserRateThrottle
 from concurrent.futures import ThreadPoolExecutor
 import asyncio
+import subprocess
+import json
+from django.conf import settings
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class RobotViewSet(viewsets.ModelViewSet):
-    queryset = Robot.objects.all()
+    # ⚡ PERFORMANS OPTİMİZASYONU: Select_related ve prefetch_related ekle
+    queryset = Robot.objects.select_related('brand').prefetch_related('pdf_dosyalari')
     permission_classes = [IsAuthenticated]  # Temel yetkilendirme: Login olmuş kullanıcı
     
     def get_permissions(self):
@@ -43,7 +53,8 @@ class RobotViewSet(viewsets.ModelViewSet):
         Admin kullanıcılar tüm robotları görebilir
         Normal kullanıcılar sadece kendi markalarının robotlarını görebilir
         """
-        queryset = Robot.objects.all()
+        # ⚡ PERFORMANS: Base queryset zaten optimize edildi (select_related + prefetch_related)
+        queryset = Robot.objects.select_related('brand').prefetch_related('pdf_dosyalari')
         
         # Superuser ve admin staff tüm robotları görebilir
         if self.request.user.is_superuser or self.request.user.is_staff:
@@ -110,57 +121,195 @@ class RobotViewSet(viewsets.ModelViewSet):
         serializer = RobotPDFSerializer(beyan_pdfs, many=True)
         return Response(serializer.data)
 
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=['post'], parser_classes=[MultiPartParser, FormParser])
     def upload_pdf(self, request, pk=None):
-        """Robot için PDF yükle"""
+        """
+        Bir robota yeni bir PDF dosyası yükler.
+        Dosya hem Google Drive'a hem de Supabase'e yüklenir.
+        """
+        robot = self.get_object()
+        file_obj = request.FILES.get('file')
+        
+        if not file_obj:
+            return Response(
+                {"error": "Yüklenecek dosya bulunamadı. Lütfen 'file' adında bir dosya gönderin."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Servis fonksiyonunu çağırarak dosyayı yükle
+        upload_result = upload_pdf_to_services(file_obj, robot)
+
+        if upload_result.get('error'):
+            return Response(
+                {"error": f"Dosya yüklenirken bir hata oluştu: {upload_result['error']}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        # Veritabanına kaydet
+        # Aynı isimde dosya varsa üzerine yaz, yoksa yeni oluştur.
+        pdf_instance, created = RobotPDF.objects.update_or_create(
+            robot=robot,
+            dosya_adi=file_obj.name,
+            defaults={
+                'pdf_dosyasi': upload_result['gdrive_link'],
+                'gdrive_file_id': upload_result['gdrive_file_id'],
+                'supabase_path': upload_result['supabase_path'],
+                'aciklama': request.data.get('aciklama', ''),
+                'is_active': True,
+                # PDF türünü isteğe bağlı olarak alabiliriz, şimdilik 'bilgi' diyelim
+                'pdf_type': request.data.get('pdf_type', 'bilgi') 
+            }
+        )
+        
+        # RAG sistemi için PDF'i chunk'la
+        try:
+            rag_service = RAGService()
+            chunks_processed = rag_service.process_single_pdf(pdf_instance)
+            logger.info(f"PDF upload başarılı: {chunks_processed} chunk oluşturuldu")
+        except Exception as e:
+            logger.error(f"RAG chunking hatası: {e}")
+            # RAG hatası upload'ı engellemez, sadece log'larız
+        
+        serializer = RobotPDFSerializer(pdf_instance, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+
+    # ==================== YENİ OPTİMİZASYON YÖNETİMİ ====================
+    
+    @action(detail=True, methods=['post'])
+    def toggle_optimization(self, request, pk=None):
+        """Robot için optimizasyon modunu açar/kapatır"""
         robot = self.get_object()
         
-        # PDF dosyası kontrolü
-        if 'pdf_dosyasi' not in request.FILES:
-            return Response({
-                'error': 'PDF dosyası gereklidir'
-            }, status=status.HTTP_400_BAD_REQUEST)
+        # Yetki kontrolü
+        if not (request.user.is_staff or request.user.is_superuser):
+            if not hasattr(request.user, 'profil') or not request.user.profil.brand:
+                return Response({
+                    'detail': 'Bu işlem için yetkiniz yok.'
+                }, status=status.HTTP_403_FORBIDDEN)
+            if robot.brand != request.user.profil.brand:
+                return Response({
+                    'detail': 'Bu robota erişim yetkiniz yok.'
+                }, status=status.HTTP_403_FORBIDDEN)
         
-        # PDF türü kontrolü
-        pdf_type = request.data.get('pdf_type')
-        if not pdf_type or pdf_type not in ['bilgi', 'kural', 'rol', 'beyan']:
-            return Response({
-                'error': 'Geçerli bir PDF türü seçiniz (bilgi, kural, rol, beyan)'
-            }, status=status.HTTP_400_BAD_REQUEST)
+        # Optimizasyon durumunu toggle et
+        from robots.services import toggle_optimization_mode, is_optimization_enabled
         
-        # Dosya adı kontrolü
-        dosya_adi = request.data.get('dosya_adi')
-        if not dosya_adi:
+        current_status = is_optimization_enabled(robot.id)
+        new_status = not current_status
+        
+        success = toggle_optimization_mode(robot.id, new_status)
+        
+        if success:
             return Response({
-                'error': 'Dosya adı gereklidir'
-            }, status=status.HTTP_400_BAD_REQUEST)
+                'success': True,
+                'optimization_enabled': new_status,
+                'message': f"Optimizasyon modu {'açıldı' if new_status else 'kapatıldı'}",
+                'robot_name': robot.name
+            })
+        else:
+            return Response({
+                'success': False,
+                'message': 'Optimizasyon durumu değiştirilemedi'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    @action(detail=True, methods=['get'])
+    def optimization_status(self, request, pk=None):
+        """Robot optimizasyon durumunu ve istatistiklerini döndürür"""
+        robot = self.get_object()
+        
+        # Yetki kontrolü
+        if not (request.user.is_staff or request.user.is_superuser):
+            if not hasattr(request.user, 'profil') or not request.user.profil.brand:
+                return Response({
+                    'detail': 'Bu işlem için yetkiniz yok.'
+                }, status=status.HTTP_403_FORBIDDEN)
+            if robot.brand != request.user.profil.brand:
+                return Response({
+                    'detail': 'Bu robota erişim yetkiniz yok.'
+                }, status=status.HTTP_403_FORBIDDEN)
+        
+        from robots.services import get_optimization_stats
+        
+        stats = get_optimization_stats(robot.id)
+        
+        # PDF content boyutları
+        from robots.services import get_robot_pdf_contents_for_ai, get_optimized_robot_pdf_contents_for_ai
         
         try:
-            # PDF oluştur
-            pdf = RobotPDF.objects.create(
-                robot=robot,
-                pdf_dosyasi=request.FILES['pdf_dosyasi'],
-                dosya_adi=dosya_adi,
-                pdf_type=pdf_type,
-                is_active=True,
-                has_rules=pdf_type == 'kural',
-                has_role=pdf_type == 'rol',
-                has_info=pdf_type == 'bilgi',
-                has_declaration=pdf_type == 'beyan'
-            )
+            standard_content = get_robot_pdf_contents_for_ai(robot)
+            optimized_content = get_optimized_robot_pdf_contents_for_ai(robot)
             
-            # Serializer ile response dön
-            serializer = RobotPDFSerializer(pdf)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            content_reduction = ((len(standard_content) - len(optimized_content)) / len(standard_content)) * 100 if len(standard_content) > 0 else 0
             
+            stats.update({
+                'robot_name': robot.name,
+                'robot_id': robot.id,
+                'standard_content_size': len(standard_content),
+                'optimized_content_size': len(optimized_content),
+                'content_reduction_percentage': round(content_reduction, 1),
+                'estimated_speed_improvement': f"{round(content_reduction * 0.8, 1)}%"  # Tahmini hız artışı
+            })
         except Exception as e:
-            return Response({
-                'error': f'PDF yüklenirken hata oluştu: {str(e)}'
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            logger.error(f"İçerik boyutu hesaplama hatası: {e}")
+            stats.update({
+                'content_size_error': str(e)
+            })
+        
+        return Response(stats)
+    
+    @action(detail=True, methods=['post'])
+    def test_optimization(self, request, pk=None):
+        """Optimizasyonu test et - örnek soru ile deneme"""
+        robot = self.get_object()
+        
+        # Test mesajı
+        test_message = request.data.get('test_message', 'Bağışıklık sistemi hakkında bilgi verir misin?')
+        
+        from robots.services import (
+            get_robot_system_prompt,
+            get_optimized_system_prompt, 
+            get_robot_pdf_contents_for_ai,
+            get_optimized_robot_pdf_contents_for_ai
+        )
+        
+        # Standart versiyon
+        standard_prompt = get_robot_system_prompt(robot, test_message)
+        standard_content = get_robot_pdf_contents_for_ai(robot)
+        standard_total = len(standard_prompt) + len(standard_content)
+        
+        # Optimize versiyon
+        optimized_prompt = get_optimized_system_prompt(robot, test_message)
+        optimized_content = get_optimized_robot_pdf_contents_for_ai(robot)
+        optimized_total = len(optimized_prompt) + len(optimized_content)
+        
+        # Karşılaştırma
+        reduction_percentage = ((standard_total - optimized_total) / standard_total) * 100 if standard_total > 0 else 0
+        
+        return Response({
+            'robot_name': robot.name,
+            'test_message': test_message,
+            'standard_version': {
+                'prompt_size': len(standard_prompt),
+                'content_size': len(standard_content),
+                'total_size': standard_total
+            },
+            'optimized_version': {
+                'prompt_size': len(optimized_prompt),
+                'content_size': len(optimized_content),
+                'total_size': optimized_total
+            },
+            'improvement': {
+                'size_reduction': f"{standard_total - optimized_total} karakter",
+                'reduction_percentage': f"{round(reduction_percentage, 1)}%",
+                'estimated_speed_improvement': f"{round(reduction_percentage * 0.8, 1)}%"
+            },
+            'recommendation': "Optimizasyon önerilir" if reduction_percentage > 50 else "Standart mod yeterli"
+        })
 
 
 class RobotPDFViewSet(viewsets.ModelViewSet):
-    queryset = RobotPDF.objects.all()
+    # ⚡ PERFORMANS OPTİMİZASYONU: Select_related ekle
+    queryset = RobotPDF.objects.select_related('robot', 'robot__brand')
     permission_classes = [IsAuthenticated]  # Login olan kullanıcılar erişebilir
     
     def get_serializer_class(self):
@@ -233,7 +382,8 @@ class RobotPDFViewSet(viewsets.ModelViewSet):
         return context
     
     def get_queryset(self):
-        queryset = RobotPDF.objects.all()
+        # ⚡ PERFORMANS: Select_related ile robot ve brand'i önceden yükle
+        queryset = RobotPDF.objects.select_related('robot', 'robot__brand')
         
         # Brand bazlı filtreleme - sadece admin olmayan kullanıcılar için
         if not (self.request.user.is_superuser or self.request.user.is_staff):
@@ -273,8 +423,23 @@ class RobotPDFViewSet(viewsets.ModelViewSet):
             }, status=status.HTTP_403_FORBIDDEN)
 
         instance = self.get_object()
+        old_active_status = instance.is_active
         instance.is_active = not instance.is_active
         instance.save()
+
+        # RAG chunks'larının aktiflik durumunu senkronize et
+        try:
+            rag_service = RAGService()
+            if instance.is_active and not old_active_status:
+                # Pasif'ten aktif'e geçti - chunk'ları yeniden oluştur
+                chunks_processed = rag_service.process_single_pdf(instance)
+                logger.info(f"PDF aktif edildi: {chunks_processed} chunk oluşturuldu")
+            elif not instance.is_active and old_active_status:
+                # Aktif'ten pasif'e geçti - chunk'ları sil
+                deleted_chunks = rag_service.delete_chunks_for_pdf(instance.id)
+                logger.info(f"PDF pasif edildi: {deleted_chunks} chunk silindi")
+        except Exception as e:
+            logger.error(f"RAG sync hatası: {e}")
 
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
@@ -288,12 +453,29 @@ class RobotPDFViewSet(viewsets.ModelViewSet):
             }, status=status.HTTP_403_FORBIDDEN)
 
         instance = self.get_object()
+        old_type = instance.pdf_type
         new_type = request.data.get('pdf_type')
 
         if not new_type or new_type not in ['bilgi', 'kural', 'rol', 'beyan']:
             return Response({
                 'detail': 'Geçerli bir PDF türü seçiniz (bilgi, kural, rol, beyan)'
             }, status=status.HTTP_400_BAD_REQUEST)
+
+        # PDF türünü güncelle
+        instance.pdf_type = new_type
+        instance.save()
+
+        # RAG chunks'larında PDF type metadata'sını güncelle
+        if instance.is_active and old_type != new_type:
+            try:
+                rag_service = RAGService()
+                updated_chunks = rag_service.update_pdf_type_metadata(instance.id, new_type)
+                logger.info(f"PDF türü güncellendi: {updated_chunks} chunk metadata'sı güncellendi")
+            except Exception as e:
+                logger.error(f"RAG metadata update hatası: {e}")
+
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
 
         instance.pdf_type = new_type
         instance.has_rules = new_type == 'kural'
@@ -312,7 +494,7 @@ class BrandViewSet(viewsets.ModelViewSet):
     serializer_class = None  # Serializer'ı aşağıda oluşturacağız
     permission_classes = [IsAuthenticated, CanAccessBrandData]  # Login olan ve marka erişimi olan kullanıcılar erişebilir
     
-    # Sadece okuma ve güncelleme işlemlerine izin ver - CREATE işlemini engelle
+    # Sadece okuma ve güncelleme işlemine izin ver - CREATE işlemini engelle
     http_method_names = ['get', 'put', 'patch', 'post', 'head', 'options']
     
     def create(self, request, *args, **kwargs):
@@ -544,10 +726,15 @@ def robot_detail_by_slug(request, slug, format=None):
     Slug ile robot detayını getir
     """
     try:
-        # Slug'dan robotu bul
-        robot = Robot.objects.get(
-            name__icontains=slug.replace('-', ' ')
-        )
+        # get_slug() metodunu kullanarak robotu bul
+        robot = None
+        for r in Robot.objects.all():
+            if r.get_slug() == slug:
+                robot = r
+                break
+        
+        if not robot:
+            raise Robot.DoesNotExist
         
         # Yetki kontrolü
         if not request.user.is_staff and not request.user.is_superuser:
@@ -585,44 +772,146 @@ class RobotChatView(APIView):
 
     def get_robot_by_slug(self, slug):
         try:
-            return Robot.objects.get(product_name__icontains=slug)
+            # get_slug() metodunu kullanarak robotu bul
+            for robot in Robot.objects.all():
+                if robot.get_slug() == slug:
+                    return robot
+            raise Robot.DoesNotExist
         except Robot.DoesNotExist:
-            return None
-    
+            from django.http import Http404
+            raise Http404
+
     def post(self, request, slug, format=None):
-        try:
-            robot = self.get_robot_by_slug(slug)
-            if not robot:
+        import subprocess
+        import json
+        from django.conf import settings
+        import logging
+        logger = logging.getLogger(__name__)
+
+        robot = self.get_robot_by_slug(slug)
+        serializer = self.serializer_class(data=request.data)
+        
+        if serializer.is_valid():
+            message = serializer.validated_data['message']
+            history = serializer.validated_data.get('history', [])
+
+            # Markanın API limitini kontrol et
+            brand = robot.brand
+            if brand.is_limit_exceeded() or brand.is_package_expired():
                 return Response(
-                    {'error': 'Robot bulunamadı!'}, 
-                    status=status.HTTP_404_NOT_FOUND
+                    {"answer": "API kullanım limitiniz doldu veya paket süreniz sona erdi. Lütfen yöneticinizle iletişime geçin."},
+                    status=status.HTTP_429_TOO_MANY_REQUESTS
                 )
 
-            message = request.data.get('message', '')
-            if not message:
-                return Response(
-                    {'error': 'Mesaj boş olamaz!'}, 
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+            # RAG sistemi ile alakalı context'i al
+            rag_service = RAGService()
+            
+            pdf_context, citations = rag_service.get_relevant_context(
+                query=message,
+                robot_id=robot.id
+            )
+            
+            # AI'ye gönderilecek 'messages' listesini oluştur
+            messages = []
+            
+            # 🚀 OPTİMİZASYON: Optimizasyon modu kontrol et
+            from robots.services import (
+                get_robot_system_prompt, 
+                is_optimization_enabled,
+                get_optimized_robot_pdf_contents_for_ai,
+                get_optimized_system_prompt,
+                get_robot_pdf_contents_for_ai
+            )
+            
+            optimization_enabled = is_optimization_enabled(robot.id)
+            logger.info(f"🔧 Robot {robot.name} optimizasyon modu: {'AÇIK' if optimization_enabled else 'KAPALI'}")
+            
+            if optimization_enabled:
+                # ⚡ OPTİMİZE MOD: Kısa sistem prompt'u + optimize PDF içeriği
+                system_prompt_base = get_optimized_system_prompt(robot, message)
+                
+                # RAG yerine optimize PDF içeriği kullan
+                pdf_context = get_optimized_robot_pdf_contents_for_ai(robot)
+                logger.info(f"⚡ Optimize PDF içerik kullanıldı: {len(pdf_context)} karakter")
+            else:
+                # 🔄 STANDART MOD: Normal sistem prompt'u + RAG
+                system_prompt_base = get_robot_system_prompt(robot, message)
+                logger.info(f"🔄 Standart mod: RAG kullanıldı")
+            
+            # PDF context'i sistem prompt'una ekle
+            system_prompt = f"""{system_prompt_base}
 
-            # Thread pool ile asenkron işlem
-            with ThreadPoolExecutor() as executor:
-                future = executor.submit(robot.process_chat_message, request.user, message)
-                try:
-                    response = future.result(timeout=55)  # 55 saniye timeout
-                    return Response(response)
-                except TimeoutError:
+BAĞLAM:
+{pdf_context}
+"""
+            messages.append({"role": "system", "content": system_prompt})
+
+            # 2. Konuşma Geçmişi
+            if isinstance(history, list):
+                messages.extend(history)
+
+            # 3. Son Kullanıcı Mesajı
+            messages.append({"role": "user", "content": message})
+            
+            try:
+                # ai-request.py script'ini çağır
+                script_path = settings.BASE_DIR / 'robots' / 'scripts' / 'ai-request.py'
+                api_key = settings.OPENROUTER_API_KEY
+
+                if not api_key:
+                    logger.error("OPENROUTER_API_KEY ayarlanmamış!")
                     return Response(
-                        {'error': 'İşlem zaman aşımına uğradı. Lütfen tekrar deneyin.'}, 
-                        status=status.HTTP_504_GATEWAY_TIMEOUT
+                        {"answer": "Sistem hatası: API anahtarı yapılandırılmamış."},
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR
                     )
 
-        except Exception as e:
-            print(f"ERROR in chat: {str(e)}")
-            return Response(
-                {'error': 'Bir hata oluştu. Lütfen tekrar deneyin.'}, 
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+                process = subprocess.run(
+                    [
+                        'python', 
+                        str(script_path),
+                        '--api-key', api_key,
+                        '--prompt', json.dumps(messages)
+                    ],
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                    encoding='utf-8'
+                )
+                
+                answer = process.stdout.strip()
+
+                # RAG bilgilerini logla
+                rag_service.log_query(message, robot.id, pdf_context, citations, answer)
+
+                brand.increment_api_count()
+
+                # Citations ile birlikte yanıt döndür
+                return Response({
+                    "answer": answer,
+                    "citations": citations,
+                    "context_used": len(citations) > 0
+                })
+
+            except FileNotFoundError:
+                logger.error(f"AI script dosyası bulunamadı: {script_path}")
+                return Response(
+                    {"answer": "Yapay zeka betiği bulunamadı. Lütfen sistem yöneticisiyle iletişime geçin."},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+            except subprocess.CalledProcessError as e:
+                logger.error(f"AI script hatası: {e.stderr}")
+                return Response(
+                    {"answer": f"Yapay zeka yanıtı alınırken bir komut hatası oluştu: {e.stderr}"},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+            except Exception as e:
+                logger.error(f"AI handler'da genel hata: {e}")
+                return Response(
+                    {"answer": "Yapay zeka yanıtı alınırken genel bir hata oluştu."},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
  
