@@ -387,12 +387,15 @@ ACCOUNT_UNIQUE_EMAIL = True
 ACCOUNT_LOGIN_METHODS = {'username'}  # Sadece kullanıcı adı ile giriş
 
 # Login/Logout URLs
-LOGIN_URL = '/api/rest-auth/login/'
-LOGIN_REDIRECT_URL = '/'
-LOGOUT_REDIRECT_URL = '/'
+# Admin panel için varsayılan Django login URL'ini kullan
+LOGIN_URL = '/admin/login/'
+LOGIN_REDIRECT_URL = '/admin/'
+LOGOUT_REDIRECT_URL = '/admin/login/'
 
 # Session ayarları
 SESSION_COOKIE_AGE = 1209600  # 2 hafta
+SESSION_SAVE_EVERY_REQUEST = True  # Her istekte session'ı kaydet
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False  # Tarayıcı kapanınca session silinmesin
 
 # dj-rest-auth ayarları
 REST_AUTH = {
