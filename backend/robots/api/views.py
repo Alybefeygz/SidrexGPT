@@ -1,7 +1,7 @@
 from rest_framework import viewsets, permissions, status, serializers
 from rest_framework.decorators import action, api_view, renderer_classes, permission_classes
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework.renderers import JSONRenderer, BrowsableAPIRenderer
 from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser, FormParser
@@ -720,10 +720,10 @@ def robots_root(request, format=None):
 
 @api_view(['GET'])
 @renderer_classes([JSONRenderer, BrowsableAPIRenderer])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])  # Login olmayan kullanıcılar da robot bilgilerini görebilir
 def robot_detail_by_slug(request, slug, format=None):
     """
-    Slug ile robot detayını getir
+    Slug ile robot detayını getir - Public bilgiler ve yetki kontrolü
     """
     try:
         # get_slug() metodunu kullanarak robotu bul
@@ -735,22 +735,48 @@ def robot_detail_by_slug(request, slug, format=None):
         
         if not robot:
             raise Robot.DoesNotExist
+            
+        # Login olmayan kullanıcılar için temel bilgiler
+        if not request.user.is_authenticated:
+            basic_data = {
+                'id': robot.id,
+                'name': robot.name,
+                'description': robot.description if hasattr(robot, 'description') else '',
+                'slug': slug,
+                'access_level': 'public'
+            }
+            return Response(basic_data)
         
-        # Yetki kontrolü
-        if not request.user.is_staff and not request.user.is_superuser:
-            if not hasattr(request.user, 'profil') or not request.user.profil.brand:
-                return Response(
-                    {'detail': 'Bu robota erişim yetkiniz yok.'},
-                    status=status.HTTP_403_FORBIDDEN
-                )
-            if robot.brand != request.user.profil.brand:
-                return Response(
-                    {'detail': 'Bu robota erişim yetkiniz yok.'},
-                    status=status.HTTP_403_FORBIDDEN
-                )
+        # Admin kullanıcılar için full access
+        if request.user.is_staff or request.user.is_superuser:
+            serializer = RobotSerializer(robot)
+            data = serializer.data
+            data['access_level'] = 'admin'
+            return Response(data)
         
-        serializer = RobotSerializer(robot)
-        return Response(serializer.data)
+        # Normal kullanıcılar için marka kontrolü
+        has_profil = hasattr(request.user, 'profil')
+        
+        if has_profil and request.user.profil.brand:
+            user_brand = request.user.profil.brand
+            
+            if robot.brand == user_brand:
+                # Marka uyuşuyor - full access
+                serializer = RobotSerializer(robot)
+                data = serializer.data
+                data['access_level'] = 'brand_member'
+                return Response(data)
+        
+        # Kullanıcı login ama yetkisi yok - limited access
+        limited_data = {
+            'id': robot.id,  # PDF yönetimi için gerekli
+            'name': robot.name,
+            'description': robot.description if hasattr(robot, 'description') else '',
+            'slug': slug,
+            'access_level': 'limited',
+            'message': 'Bu robota tam erişiminiz bulunmuyor. Lütfen sistem yöneticisiyle iletişime geçin.'
+        }
+        return Response(limited_data)
         
     except Robot.DoesNotExist:
         return Response(

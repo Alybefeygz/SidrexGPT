@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { api } from '@/lib/api'
+import { api, setApiRouter } from '@/lib/api'
 
 interface User {
   id: number
@@ -47,6 +47,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
+
+  // Router'ı API'ye geç
+  useEffect(() => {
+    setApiRouter(router);
+  }, [router]);
 
   const checkAdminAccess = () => {
     return user?.is_staff || user?.is_superuser || false

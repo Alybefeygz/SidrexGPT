@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 
 // Backend API base URL - Environment variables'tan alınır
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 
@@ -14,6 +15,13 @@ console.log('🔍 Environment Variables:', {
 // ⚡ PERFORMANS: Response Cache için basit Map
 const responseCache = new Map();
 const CACHE_DURATION = 60000; // 1 dakika
+
+// Router instance for navigation
+let router: AppRouterInstance | null = null;
+
+export const setApiRouter = (routerInstance: AppRouterInstance) => {
+  router = routerInstance;
+};
 
 // Axios instance oluşturma
 export const apiClient = axios.create({
@@ -181,8 +189,12 @@ apiClient.interceptors.response.use(
   },
   async (error) => {
     if (error.response?.status === 401) {
-      // Token geçersizse kullanıcıyı login sayfasına yönlendir
-      if (typeof window !== 'undefined') {
+      // Router kullanarak soft navigation yap (hard redirect yerine)
+      if (router) {
+        router.push('/yonetim');
+      } else if (typeof window !== 'undefined') {
+        // Fallback olarak hard redirect (sadece router yoksa)
+        console.warn('Router not available, using hard redirect as fallback');
         window.location.href = '/yonetim';
       }
     }
