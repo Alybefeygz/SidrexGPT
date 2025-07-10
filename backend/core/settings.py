@@ -362,16 +362,19 @@ if not DEBUG:
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'knox.auth.TokenAuthentication',
-        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.SessionAuthentication',  # Admin session önce
+        'knox.auth.TokenAuthentication',  # Knox token sonra
+        'rest_framework.authentication.BasicAuthentication',  # Fallback
     ],
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
+        'rest_framework.permissions.IsAuthenticatedOrReadOnly',  # Daha esnek
     ],
     'DEFAULT_THROTTLE_RATES': {
         'chat': '5/minute',  # Chat istekleri için rate limiting
     },
-    'DEFAULT_TIMEOUT': 60  # 60 saniye
+    'DEFAULT_TIMEOUT': 60,  # 60 saniye
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 20
 }
 
 # ==============================================================================
