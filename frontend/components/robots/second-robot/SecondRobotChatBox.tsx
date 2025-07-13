@@ -103,7 +103,7 @@ export default function SecondRobotChatBox({
                     <span className="animate-bounce" style={{ animationDelay: "0.4s" }}>.</span>
                   </p>
                 ) : (
-                  <p className="text-sm">
+                  <div className="text-sm">
                     {message.isUser ? (
                       message.text
                     ) : (
@@ -115,7 +115,7 @@ export default function SecondRobotChatBox({
                         {message.text}
                       </ReactMarkdown>
                     )}
-                  </p>
+                  </div>
                 )}
               </div>
             </div>

@@ -821,6 +821,20 @@ class RobotChatView(APIView):
             message = serializer.validated_data['message']
             history = serializer.validated_data.get('history', [])
 
+            # 🚀 HIZLI YOL OPTİMİZASYONU: Basit sorguları anında yanıtla
+            # Kullanıcının mesajını küçük harfe çevir ve boşlukları temizle
+            normalized_message = message.strip().lower()
+            
+            # Çok kısa veya genel selamlama mesajları için RAG ve AI'ı atla
+            if len(normalized_message) < 4 or normalized_message in ['merhaba', 'selam', 'naber', 'hey', 'hi', 'hello']:
+                logger.info(f"Hızlı yol tetiklendi: '{message}'. Anında yanıt veriliyor.")
+                # Markanın API sayacını artırmadan hızlı yanıt ver
+                return Response({
+                    "answer": f"Merhaba! Size {robot.name} asistanı olarak nasıl yardımcı olabilirim?",
+                    "citations": [],
+                    "context_used": False
+                })
+
             # Markanın API limitini kontrol et
             brand = robot.brand
             if brand.is_limit_exceeded() or brand.is_package_expired():
@@ -904,7 +918,13 @@ BAĞLAM:
                     encoding='utf-8'
                 )
                 
+                logger.debug(f"AI script stdout: {process.stdout.strip()}")
+                logger.debug(f"AI script stderr: {process.stderr.strip()}")
+
                 answer = process.stdout.strip()
+
+                # DEBUG: Frontend'e gönderilmeden önce 'answer' değişkenini logla
+                logger.info(f"DEBUG: Answer from AI script (type: {type(answer)}, len: {len(answer)}): {answer[:200]}...")
 
                 # RAG bilgilerini logla
                 rag_service.log_query(message, robot.id, pdf_context, citations, answer)

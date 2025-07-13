@@ -139,17 +139,19 @@ export default function FirstRobot({ onChatToggle, isOtherChatOpen, isFloating =
 
     try {
       const response = await sendChatMessage(messageText)
+      console.log("Frontend'de alınan yanıt (JSON):", JSON.stringify(response, null, 2))
+      console.log("Frontend'de alınan yanıtın tipi:", typeof response)
       
-      if (response && (response as any).answer) {
+      if (response && (response as any).robot_response) {
         const apiResponse = response as any
         const botResponse: Message = {
           id: loadingMessage.id, // Use the same ID to update
-          text: apiResponse.answer,
+          text: apiResponse.robot_response,
           isUser: false,
           timestamp: new Date(),
           status: 'ok',
-          citations: apiResponse.citations || [],
-          context_used: apiResponse.context_used || false
+          citations: apiResponse.citations || [], // Backend'den gelmiyorsa boş dizi
+          context_used: apiResponse.context_used || false // Backend'den gelmiyorsa false
         }
         setMessages((prev) => prev.map(msg => msg.id === loadingMessage.id ? botResponse : msg))
       } else {
@@ -164,7 +166,7 @@ export default function FirstRobot({ onChatToggle, isOtherChatOpen, isFloating =
         setMessages((prev) => prev.map(msg => msg.id === loadingMessage.id ? errorResponse : msg));
       }
     } catch (error: any) {
-      console.error('Chat error:', error)
+      console.error('Chat error caught in FirstRobot:', error)
       toast.error(error.message || 'Mesaj gönderilemedi')
       
       const errorResponse: Message = {

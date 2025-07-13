@@ -26,7 +26,7 @@ export const setApiRouter = (routerInstance: AppRouterInstance) => {
 // Axios instance oluşturma
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 30000,  // ⚡ PERFORMANS: 30 saniye timeout (eski: 60 saniye)
+  timeout: 60000,  // ⚡ PERFORMANS: 60 saniye timeout (eski: 30 saniye)
   withCredentials: true
 });
 

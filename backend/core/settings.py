@@ -412,7 +412,7 @@ LOGGING = {
         },
         'robots.api': {
             'handlers': ['console'],
-            'level': 'INFO',
+            'level': 'DEBUG',
             'propagate': True,
         },
     },

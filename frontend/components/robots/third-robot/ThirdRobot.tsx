@@ -91,13 +91,15 @@ export default function ThirdRobot({ onChatToggle, isOtherChatOpen, isFloating =
     try {
       const response = await sendChatMessage(messageText) as ChatResponse
       
-      if (response && response.answer) {
+      if (response && (response as any).robot_response) {
         const botResponse: Message = {
           id: loadingMessage.id, // Use the same ID to update
-          text: response.answer,
+          text: (response as any).robot_response,
           isUser: false,
           timestamp: new Date(),
-          status: 'ok'
+          status: 'ok',
+          citations: (response as any).citations || [],
+          context_used: (response as any).context_used || false,
         }
         setMessages((prev) => prev.map(msg => msg.id === loadingMessage.id ? botResponse : msg))
       } else {

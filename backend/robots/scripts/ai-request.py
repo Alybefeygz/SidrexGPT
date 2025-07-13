@@ -17,14 +17,7 @@ logger = logging.getLogger(__name__)
 
 # Available models with fallback
 MODELS = [
-    "google/gemini-flash-1.5:free",              # Google Gemini (çok uzun context, kurallara uyumlu)
-    "deepseek/deepseek-r1-distill-llama-70b:free",# DeepSeek (güçlü, kurallara uyumlu)
-    "qwen/qwen3-30b-a3b:free",                   # Qwen (dengeli)
-    "anthropic/claude-3.5-haiku:beta",           # Claude (daha az öncelikli)
-    "openrouter/cypher-alpha:free",              # Yedek (uzun context)
-    "meta-llama/llama-3.2-3b-instruct:free",     # Llama 3.2 (gelişmiş)
-    "qwen/qwen3-14b:free",                       # Yedek (çok dilli)
-    "qwen/qwen3-4b:free"                         # Yedek (hızlı)
+    "deepseek/deepseek-r1-distill-llama-70b:free" # Sadece bu modeli kullan
 ]
 
 class OpenRouterAIHandler:
@@ -58,124 +51,71 @@ class OpenRouterAIHandler:
             "X-Title": self.app_name
         })
     
-    def get_next_model(self) -> str:
-        """
-        Get next available model from the rotation
-        
-        Returns:
-            Next model ID to try
-        """
-        # Reset error counts periodically (every hour)
-        current_time = time.time()
-        if not hasattr(self, 'last_reset_time') or current_time - self.last_reset_time > 3600:
-            self.model_error_counts = {model: 0 for model in MODELS}
-            self.last_reset_time = current_time
-        
-        # Try to find a model with fewer errors
-        min_errors = min(self.model_error_counts.values())
-        available_models = [model for model in MODELS if self.model_error_counts[model] <= min_errors + 2]
-        
-        if not available_models:
-            # If all models have too many errors, reset counts and try again
-            self.model_error_counts = {model: 0 for model in MODELS}
-            available_models = MODELS
-        
-        # Rotate through available models
-        self.current_model_index = (self.current_model_index + 1) % len(available_models)
-        return available_models[self.current_model_index]
     
-    def make_chat_request(self, messages: list, model: str = None, max_retries: int = 3, max_tokens: int = 10000) -> Dict[str, Any]:
+    
+    def make_chat_request(self, messages: list, model: str = None, max_tokens: int = 10000) -> Dict[str, Any]:
         """
-        Make a chat completion request to OpenRouter with retry and model rotation
+        Make a chat completion request to OpenRouter without model rotation.
         
         Args:
             messages: List of chat messages
-            model: Model to use (if None, will use model rotation)
-            max_retries: Maximum number of retries per model
+            model: Model to use (if None, will use the first model in MODELS)
             max_tokens: Maximum tokens for response (default 10000)
             
         Returns:
             Response data as dictionary
         """
         if model is None:
-            model = MODELS[0]  # Start with first model
-        
-        original_model = model
-        total_attempts = 0
-        max_total_attempts = len(MODELS) * max_retries
-        
-        while total_attempts < max_total_attempts:
-            url = f"{self.base_url}/chat/completions"
-            
-            data = {
-                "model": model,
-                "messages": messages,
-                "max_tokens": max_tokens,
-                "temperature": 0.7,
-                "top_p": 1,
-                "frequency_penalty": 0,
-                "presence_penalty": 0
-            }
-            
-            # Debug: İstek verilerini logla
-            total_content_length = sum(len(msg.get('content', '')) for msg in messages)
-            print(f"DEBUG OpenRouter İsteği - Model: {model}")
-            print(f"DEBUG OpenRouter İsteği - Max Tokens: {max_tokens}")
-            print(f"DEBUG OpenRouter İsteği - Toplam İçerik Uzunluğu: {total_content_length} karakter")
-            print(f"DEBUG OpenRouter İsteği - Mesaj Sayısı: {len(messages)}")
-            
-            try:
-                response = self.session.post(url, json=data)
-                response.raise_for_status()
-                
-                # Success - reset error count for this model
-                self.model_error_counts[model] = max(0, self.model_error_counts[model] - 1)
-                logger.info(f"Successful chat request with model: {model}")
-                
-                # Debug: Yanıt bilgilerini logla
-                response_data = response.json()
-                if 'choices' in response_data and response_data['choices']:
-                    response_content = response_data['choices'][0]['message']['content']
-                    print(f"DEBUG OpenRouter Yanıtı - İçerik Uzunluğu: {len(response_content)} karakter")
-                    print(f"DEBUG OpenRouter Yanıtı - İlk 100 karakter: {response_content[:100]}")
-                
-                if 'usage' in response_data:
-                    usage = response_data['usage']
-                    print(f"DEBUG OpenRouter Yanıtı - Token Kullanımı: {usage}")
-                
-                return response_data
-                
-            except requests.exceptions.HTTPError as e:
-                self.model_error_counts[model] += 1
-                
-                if e.response.status_code == 429:  # Rate limit error
-                    wait_time = (2 ** (total_attempts % 3)) + random.uniform(0, 1)
-                    logger.warning(f"Rate limit hit for {model}. Waiting {wait_time:.2f}s before trying next model...")
-                    time.sleep(wait_time)
-                
-                # Try next model
-                model = self.get_next_model()
-                if model == original_model:  # We've tried all models
-                    total_attempts += max_retries
-                else:
-                    total_attempts += 1
-                continue
-                    
-            except requests.exceptions.RequestException as e:
-                self.model_error_counts[model] += 1
-                logger.error(f"Chat request failed with {model}: {e}")
-                
-                # Try next model
-                model = self.get_next_model()
-                if model == original_model:  # We've tried all models
-                    total_attempts += max_retries
-                else:
-                    total_attempts += 1
-                continue
-        
-        # If we get here, all models failed
-        logger.error("All models failed after maximum attempts")
-        return {"error": "Tüm modeller şu anda meşgul. Lütfen birkaç dakika bekleyip tekrar deneyin."}
+            model = MODELS[0]  # Use the first (and only) model
+
+        url = f"{self.base_url}/chat/completions"
+
+        data = {
+            "model": model,
+            "messages": messages,
+            "max_tokens": max_tokens,
+            "temperature": 0.7,
+            "top_p": 1,
+            "frequency_penalty": 0,
+            "presence_penalty": 0
+        }
+
+        # Debug: İstek verilerini logla (stderr'e yönlendirildi)
+        import sys
+        total_content_length = sum(len(msg.get('content', '')) for msg in messages)
+        print(f"DEBUG OpenRouter İsteği - Model: {model}", file=sys.stderr)
+        print(f"DEBUG OpenRouter İsteği - Max Tokens: {max_tokens}", file=sys.stderr)
+        print(f"DEBUG OpenRouter İsteği - Toplam İçerik Uzunluğu: {total_content_length} karakter", file=sys.stderr)
+        print(f"DEBUG OpenRouter İsteği - Mesaj Sayısı: {len(messages)}", file=sys.stderr)
+
+        try:
+            response = self.session.post(url, json=data)
+            response.raise_for_status()
+
+            logger.info(f"Successful chat request with model: {model}")
+
+            # Debug: Yanıt bilgilerini logla
+            response_data = response.json()
+            if 'choices' in response_data and response_data['choices']:
+                response_content = response_data['choices'][0]['message']['content']
+                print(f"DEBUG OpenRouter Yanıtı - İçerik Uzunluğu: {len(response_content)} karakter")
+                print(f"DEBUG OpenRouter Yanıtı - İlk 100 karakter: {response_content[:100]}")
+
+            if 'usage' in response_data:
+                usage = response_data['usage']
+                print(f"DEBUG OpenRouter Yanıtı - Token Kullanımı: {usage}")
+
+            return response_data
+
+        except requests.exceptions.HTTPError as e:
+            logger.error(f"Chat request failed with {model} (HTTP Error): {e}")
+            return {"error": f"AI hizmetinden HTTP hatası: {e.response.status_code} - {e.response.text}"}
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Chat request failed with {model} (Request Error): {e}")
+            return {"error": f"AI hizmetine bağlanırken hata: {e}"}
+        except Exception as e:
+            logger.error(f"Chat request failed with {model} (General Error): {e}")
+            return {"error": f"AI yanıtı alınırken genel bir hata oluştu: {e}"}
     
     def get_available_models(self) -> Dict[str, Any]:
         """
@@ -238,28 +178,32 @@ class OpenRouterAIHandler:
     
     def chat_with_history(self, messages: list, model: str = None, max_tokens: int = 4000) -> str:
         """
-        Chat with conversation history
-        
-        Args:
-            messages: Full conversation history
-            model: Model to use (if None, will use model rotation)
-            max_tokens: Maximum tokens for response (default 4000)
-            
-        Returns:
-            AI response as string
+        Chat with conversation history.
+        RAISES:
+            ValueError: If the AI response contains an error or fails.
         """
         try:
             response = self.make_chat_request(messages, model, max_tokens=max_tokens)
             
-            # Check if response contains an error
+            # If the response dictionary itself contains an error key, raise an exception.
             if "error" in response:
-                return response["error"]
+                raise ValueError(response["error"])
             
+            # Check for valid response structure
+            if "choices" not in response or not response.get("choices"):
+                raise ValueError(f"AI response is malformed or empty. Response: {response}")
+                
             return response["choices"][0]["message"]["content"]
             
+        except requests.exceptions.RequestException as e:
+            # Re-raise network errors as a specific ValueError
+            logger.error(f"Network error during chat with history: {e}")
+            raise ValueError(f"AI service network error: {e}")
         except Exception as e:
-            logger.error(f"Error in chat with history: {e}")
-            return f"Üzgünüm, şu anda teknik bir sorun yaşıyorum. Lütfen daha sonra tekrar deneyin."
+            # Catch any other exception and re-raise it to be handled by the main function.
+            logger.error(f"Error in chat_with_history: {e}")
+            # Re-raise the exception to ensure the script exits with an error code.
+            raise
 
 
 def test_openrouter():

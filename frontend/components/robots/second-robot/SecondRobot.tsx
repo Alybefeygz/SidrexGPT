@@ -82,15 +82,17 @@ const SecondRobot = memo(function SecondRobot({ onChatToggle, isOtherChatOpen, i
 
   // ⚡ PERFORMANS: Memoized sendMessage function
   const sendMessage = useCallback(async () => {
-    if (inputValue.trim() === "" || chatLoading) return
+    if (inputValue.trim() === "" || chatLoading) {
+      return;
+    }
 
     const userMessage: Message = {
       id: Date.now(),
       text: inputValue,
       isUser: true,
       timestamp: new Date(),
-      status: 'ok'
-    }
+      status: 'ok',
+    };
 
     const loadingMessage: Message = {
         id: Date.now() + 1,
@@ -98,24 +100,29 @@ const SecondRobot = memo(function SecondRobot({ onChatToggle, isOtherChatOpen, i
         isUser: false,
         timestamp: new Date(),
         status: 'loading',
-    }
+    };
 
-    setMessages((prev) => [...prev, userMessage, loadingMessage])
-    const messageText = inputValue
-    setInputValue("")
+    setMessages((prev) => [...prev, userMessage, loadingMessage]);
+    const messageText = inputValue;
+    setInputValue("");
 
     try {
-      const response = await sendChatMessage(messageText) as ChatResponse
+      const response = await sendChatMessage(messageText) as ChatResponse;
       
-      if (response && response.answer) {
+      // DEBUG: Gelen yanıtın gerçek yapısını görmek için konsola yazdır
+      console.log("Final response received in component:", response);
+
+      if (response && (response as any).robot_response) {
         const botResponse: Message = {
-          id: loadingMessage.id, // Use the same ID to update
-          text: response.answer,
+          id: loadingMessage.id,
+          text: (response as any).robot_response,
           isUser: false,
           timestamp: new Date(),
-          status: 'ok'
-        }
-        setMessages((prev) => prev.map(msg => msg.id === loadingMessage.id ? botResponse : msg))
+          status: 'ok',
+          citations: (response as any).citations || [],
+          context_used: (response as any).context_used || false,
+        };
+        setMessages((prev) => prev.map(msg => msg.id === loadingMessage.id ? botResponse : msg));
       } else {
         const errorResponse: Message = {
             id: loadingMessage.id,
@@ -123,23 +130,23 @@ const SecondRobot = memo(function SecondRobot({ onChatToggle, isOtherChatOpen, i
             isUser: false,
             timestamp: new Date(),
             status: 'error',
-        }
+        };
         setMessages((prev) => prev.map(msg => msg.id === loadingMessage.id ? errorResponse : msg));
       }
     } catch (error: any) {
-      console.error('Chat error:', error)
-      toast.error(error.message || 'Mesaj gönderilemedi')
+      console.error('Chat error:', error);
+      toast.error(error.message || 'Mesaj gönderilemedi');
       
       const errorResponse: Message = {
         id: loadingMessage.id,
         text: "Üzgünüm, şu anda bir sorun yaşıyorum. Lütfen daha sonra tekrar deneyin.",
         isUser: false,
         timestamp: new Date(),
-        status: 'error'
-      }
+        status: 'error',
+      };
       setMessages((prev) => prev.map(msg => msg.id === loadingMessage.id ? errorResponse : msg));
     }
-  }, [inputValue, chatLoading, sendChatMessage])
+  }, [inputValue, chatLoading, sendChatMessage, setMessages, setInputValue]);
 
   // ⚡ PERFORMANS: Memoized handleKeyPress
   const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
