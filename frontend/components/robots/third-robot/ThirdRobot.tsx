@@ -20,6 +20,14 @@ interface ChatResponse {
   session_id?: string;
 }
 
+interface Citation {
+  source: string
+  content: string
+  similarity: number
+  chunk_index: number
+  pdf_type: string
+}
+
 interface Message {
   id: number
   text: string
