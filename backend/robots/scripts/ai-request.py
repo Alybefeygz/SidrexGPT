@@ -108,8 +108,11 @@ class OpenRouterAIHandler:
             return response_data
 
         except requests.exceptions.HTTPError as e:
-            logger.error(f"Chat request failed with {model} (HTTP Error): {e}")
-            return {"error": f"AI hizmetinden HTTP hatası: {e.response.status_code} - {e.response.text}"}
+            logger.error(f"Chat request failed with {model} (HTTP Error): {e.response.status_code} - {e.response.text}")
+            if e.response.status_code == 429:
+                return {"error": "AI hizmeti şu anda yoğun. Lütfen daha sonra tekrar deneyin."}
+            else:
+                return {"error": f"AI hizmetinden bir hata oluştu: {e.response.status_code}"}
         except requests.exceptions.RequestException as e:
             logger.error(f"Chat request failed with {model} (Request Error): {e}")
             return {"error": f"AI hizmetine bağlanırken hata: {e}"}
