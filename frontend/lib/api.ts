@@ -112,6 +112,17 @@ export const ensureCSRFToken = async (): Promise<void> => {
     console.log('🔄 CSRF token alınıyor...');
     await apiClient.get('/csrf/');
     
+    // Add a small delay and retry to ensure cookie is available
+    let attempts = 0;
+    const maxAttempts = 5;
+    const delayMs = 100;
+
+    while (!hasValidCSRFToken() && attempts < maxAttempts) {
+      console.log(`DEBUG: CSRF token bekleniyor... Deneme ${attempts + 1}/${maxAttempts}`);
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+      attempts++;
+    }
+
     // Token alındı mı kontrol et
     if (!hasValidCSRFToken()) {
       throw new Error('CSRF token alınamadı');
