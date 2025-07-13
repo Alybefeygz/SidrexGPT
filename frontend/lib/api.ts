@@ -71,64 +71,21 @@ function setCachedResponse(cacheKey: string, data: any) {
 }
 
 // Helper function to get CSRF token from cookies
-function getCookie(name: string): string | null {
-    if (typeof window === 'undefined') {
-        return null;
-    }
-    let cookieValue = null;
-    console.log("DEBUG: Tüm çerezler:", document.cookie);
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            // Does this cookie string begin with the name we want?
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                console.log(`DEBUG: ${name} çerezi bulundu:`, cookieValue);
-                break;
-            }
-        }
-    }
-    if (!cookieValue) {
-        console.log(`DEBUG: ${name} çerezi bulunamadı.`);
-    }
-    return cookieValue;
-}
 
-// CSRF token varlığını kontrol et
-function hasValidCSRFToken(): boolean {
-  const token = getCookie('csrftoken');
-  return token !== null && token.length > 0;
-}
 
 // CSRF token alma - zorunlu
 export const ensureCSRFToken = async (): Promise<void> => {
-  if (hasValidCSRFToken()) {
-    console.log('✅ CSRF token mevcut');
-    return;
-  }
-
   try {
     console.log('🔄 CSRF token alınıyor...');
-    await apiClient.get('/csrf/');
-    
-    // Add a small delay and retry to ensure cookie is available
-    let attempts = 0;
-    const maxAttempts = 5;
-    const delayMs = 100;
+    const response = await apiClient.get('/csrf/');
+    const csrfTokenValue = response.data.csrf_token;
 
-    while (!hasValidCSRFToken() && attempts < maxAttempts) {
-      console.log(`DEBUG: CSRF token bekleniyor... Deneme ${attempts + 1}/${maxAttempts}`);
-      await new Promise(resolve => setTimeout(resolve, delayMs));
-      attempts++;
+    if (csrfTokenValue) {
+      localStorage.setItem('csrfTokenValue', csrfTokenValue);
+      console.log('✅ CSRF token başarıyla alındı ve localStorage'a kaydedildi.');
+    } else {
+      throw new Error('CSRF token yanıt gövdesinde bulunamadı.');
     }
-
-    // Token alındı mı kontrol et
-    if (!hasValidCSRFToken()) {
-      throw new Error('CSRF token alınamadı');
-    }
-    
-    console.log('✅ CSRF token başarıyla alındı');
   } catch (error) {
     console.error('❌ CSRF token alınırken hata:', error);
     throw new Error('CSRF token alınamadı. Lütfen sayfayı yenileyin.');
@@ -173,11 +130,11 @@ apiClient.interceptors.request.use(
     
     // Add CSRF token for all methods except GET and HEAD
     if (typeof window !== 'undefined' && config.method && !['GET', 'HEAD'].includes(config.method.toUpperCase())) {
-      const csrfToken = getCookie('csrftoken');
+      const csrfToken = localStorage.getItem('csrfTokenValue');
       if (csrfToken && config.headers) {
         config.headers['X-CSRFToken'] = csrfToken;
       } else {
-        console.warn('CSRF token not found in cookies');
+        console.warn('CSRF token not found in localStorage');
       }
     }
 
