@@ -38,6 +38,10 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 # Allowed hosts - production için mutlaka belirtilmeli
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=lambda v: ['localhost', '127.0.0.1', 'sidrexgpt-backend.onrender.com'] + [h.strip() for h in v.split(',') if h.strip()])
 
+# Trust the 'X-Forwarded-Proto' header from the reverse proxy (Render)
+# This is crucial for secure cookies and HTTPS redirects to work correctly.
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 # ==============================================================================
 # GOOGLE DRIVE SERVICE ACCOUNT CONFIGURATION
 # ==============================================================================
@@ -362,19 +366,16 @@ if not DEBUG:
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.SessionAuthentication',  # Admin session önce
-        'knox.auth.TokenAuthentication',  # Knox token sonra
-        'rest_framework.authentication.BasicAuthentication',  # Fallback
+        'knox.auth.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticatedOrReadOnly',  # Daha esnek
+        'rest_framework.permissions.IsAuthenticated',
     ],
     'DEFAULT_THROTTLE_RATES': {
         'chat': '5/minute',  # Chat istekleri için rate limiting
     },
-    'DEFAULT_TIMEOUT': 60,  # 60 saniye
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 20
+    'DEFAULT_TIMEOUT': 60  # 60 saniye
 }
 
 # ==============================================================================
