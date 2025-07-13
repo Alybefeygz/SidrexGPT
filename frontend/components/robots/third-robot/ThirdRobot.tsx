@@ -26,6 +26,8 @@ interface Message {
   isUser: boolean
   timestamp: Date
   status?: 'loading' | 'ok' | 'error'
+  citations?: Citation[]
+  context_used?: boolean
 }
 
 export default function ThirdRobot({ onChatToggle, isOtherChatOpen, isFloating = false }: ThirdRobotProps) {
