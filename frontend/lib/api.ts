@@ -30,6 +30,20 @@ export const apiClient = axios.create({
   withCredentials: true
 });
 
+// Add Authorization header for authenticated requests
+apiClient.interceptors.request.use(
+  (config) => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
+    if (token && config.headers) {
+      config.headers.Authorization = `Token ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
 // ⚡ PERFORMANS: Cache helper fonksiyonları
 function getCacheKey(config: any): string {
   return `${config.method}-${config.url}-${JSON.stringify(config.params)}`;
