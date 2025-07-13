@@ -246,119 +246,63 @@ if DEBUG:
     ])
 
 # ==============================================================================
-# ENHANCED CSRF CONFIGURATION FOR PRODUCTION
+# SECURITY, CSRF & CORS CONFIGURATION
 # ==============================================================================
 
-# Domain ayarları - Environment'tan al
-CSRF_COOKIE_DOMAIN = config('CSRF_COOKIE_DOMAIN', default=None)
+# Domain ayarları (genellikle None bırakılır)
 SESSION_COOKIE_DOMAIN = config('SESSION_COOKIE_DOMAIN', default=None)
+CSRF_COOKIE_DOMAIN = config('CSRF_COOKIE_DOMAIN', default=None)
 
-# HTTPS kontrolü
-FORCE_HTTPS = config('FORCE_HTTPS', default=not DEBUG, cast=bool)
-CSRF_COOKIE_SECURE = FORCE_HTTPS
-SESSION_COOKIE_SECURE = FORCE_HTTPS
-
-# SameSite ayarları - Environment'a göre
-CROSS_DOMAIN = config('CROSS_DOMAIN', default=False, cast=bool)
-
-if DEBUG:
-    # Development: Esnek ayarlar
-    CSRF_COOKIE_SAMESITE = 'Lax'
-    SESSION_COOKIE_SAMESITE = 'Lax'
-    CSRF_COOKIE_SECURE = False
-    SESSION_COOKIE_SECURE = False
-elif CROSS_DOMAIN:
-    # Production + Cross Domain: Strict güvenlik
-    CSRF_COOKIE_SAMESITE = 'None'
-    SESSION_COOKIE_SAMESITE = 'None'
-    # None kullanıyorsak HTTPS zorunlu
-    CSRF_COOKIE_SECURE = True
-    SESSION_COOKIE_SECURE = True
-else:
-    # Production + Same Domain: Maximum güvenlik
-    CSRF_COOKIE_SAMESITE = 'Strict'
-    SESSION_COOKIE_SAMESITE = 'Strict'
-
-# Trusted Origins - Environment'tan ekle
-ADDITIONAL_TRUSTED_ORIGINS = config('ADDITIONAL_TRUSTED_ORIGINS', default='', cast=lambda v: [x.strip() for x in v.split(',') if x.strip()])
-CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS + ADDITIONAL_TRUSTED_ORIGINS
-
-# CSRF cookie'sine JavaScript'in erişimine izin ver
-CSRF_COOKIE_HTTPONLY = False
-
-# Oturumlar için CSRF kullanma
-CSRF_USE_SESSIONS = False
-
-# CORS ayarları
-CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_METHODS = [
-    'DELETE',
-    'GET',
-    'OPTIONS',
-    'PATCH',
-    'POST',
-    'PUT',
-]
-CORS_ALLOW_HEADERS = [
-    'accept',
-    'accept-encoding',
-    'authorization',
-    'content-type',
-    'dnt',
-    'origin',
-    'user-agent',
-    'x-csrftoken',
-    'x-requested-with',
-    'cache-control',  # Yeni eklenen
-    'pragma',         # Yeni eklenen
-]
-CORS_EXPOSE_HEADERS = [
-    'content-type', 
-    'x-csrftoken',
-    'set-cookie',     # Yeni eklenen
-]
-CORS_PREFLIGHT_MAX_AGE = 86400  # 24 saat
-
-# Debug bilgisi
-if DEBUG:
-    print(f"🔐 CSRF Configuration:")
-    print(f"   - CSRF_COOKIE_SECURE: {CSRF_COOKIE_SECURE}")
-    print(f"   - CSRF_COOKIE_SAMESITE: {CSRF_COOKIE_SAMESITE}")
-    print(f"   - CSRF_COOKIE_DOMAIN: {CSRF_COOKIE_DOMAIN}")
-    print(f"   - CSRF_TRUSTED_ORIGINS: {CSRF_TRUSTED_ORIGINS}")
-    print(f"   - CROSS_DOMAIN: {CROSS_DOMAIN}")
-
-# ==============================================================================
-# ADMIN PANEL ÖZEL CSRF AYARLARI
-# ==============================================================================
-
-# Production'da admin panel için özel ayarlar
+# Production ortamında (DEBUG=False) HTTPS ve güvenlik ayarlarını zorunlu kıl
 if not DEBUG:
-    # Admin panel için CSRF trusted origins'i genişlet
-    CSRF_TRUSTED_ORIGINS = [
-        "https://sidrexgpt-backend.onrender.com",
-        "https://sidrexgpt-frontend.onrender.com",
-    ] + ADDITIONAL_TRUSTED_ORIGINS
-    
-    # Admin panel için session ayarları - daha esnek
     SESSION_COOKIE_SECURE = True
-    SESSION_COOKIE_HTTPONLY = True
-    SESSION_COOKIE_SAMESITE = 'Lax'  # Admin panel için Strict yerine Lax
-    
-    # CSRF için admin panel uyumlu ayarlar
     CSRF_COOKIE_SECURE = True
-    CSRF_COOKIE_SAMESITE = 'Lax'  # Admin panel login için daha esnek
-    CSRF_COOKIE_HTTPONLY = False  # Admin panel JavaScript erişimi için
-    
-    # Admin panel için ek güvenlik ayarları
+    # 'Strict' yerine 'Lax', admin paneli gibi senaryolarda daha az sorun çıkarır.
+    SESSION_COOKIE_SAMESITE = 'Lax'
+    CSRF_COOKIE_SAMESITE = 'Lax'
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
-    X_FRAME_OPTIONS = 'SAMEORIGIN'  # Admin panel iframe koruması
+    X_FRAME_OPTIONS = 'SAMEORIGIN'
     
-    print(f"🔐 Admin Panel CSRF Configuration:")
-    print(f"   - CSRF_COOKIE_SAMESITE: {CSRF_COOKIE_SAMESITE}")
-    print(f"   - SESSION_COOKIE_SAMESITE: {SESSION_COOKIE_SAMESITE}")
-    print(f"   - CSRF_TRUSTED_ORIGINS: {CSRF_TRUSTED_ORIGINS}")
+    # Render gibi ters proxy'ler için Django'ya HTTPS bağlantısına güvenmesini söyle.
+    # Bu ayar, secure cookie'lerin doğru çalışması için kritiktir.
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+else:
+    # Geliştirme ortamı için esnek ayarlar
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False
+    SESSION_COOKIE_SAMESITE = 'Lax'
+    CSRF_COOKIE_SAMESITE = 'Lax'
+
+# CSRF için güvenilir kaynaklar. Hem backend'in hem de frontend'in domain'i eklenmelidir.
+ADDITIONAL_TRUSTED_ORIGINS = config('ADDITIONAL_TRUSTED_ORIGINS', default='', cast=lambda v: [x.strip() for x in v.split(',') if x.strip()])
+CSRF_TRUSTED_ORIGINS = [
+    "https://sidrexgpt-backend.onrender.com",
+    "https://sidrexgpt-frontend.onrender.com",
+] + CORS_ALLOWED_ORIGINS + ADDITIONAL_TRUSTED_ORIGINS
+
+# CSRF_TRUSTED_ORIGINS listesindeki muhtemel kopyaları temizle
+CSRF_TRUSTED_ORIGINS = sorted(list(set(CSRF_TRUSTED_ORIGINS)))
+
+# CSRF cookie'sine JavaScript'in erişimine izin ver (gerekliyse)
+CSRF_COOKIE_HTTPONLY = False
+SESSION_COOKIE_HTTPONLY = True # Oturum çerezini daha güvenli yapalım
+
+# CORS Ayarları
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_METHODS = ['DELETE', 'GET', 'OPTIONS', 'PATCH', 'POST', 'PUT']
+CORS_ALLOW_HEADERS = ['accept', 'authorization', 'content-type', 'origin', 'x-csrftoken', 'x-requested-with']
+CORS_EXPOSE_HEADERS = ['content-type', 'x-csrftoken', 'set-cookie']
+CORS_PREFLIGHT_MAX_AGE = 86400
+
+# Yapılandırma Bilgisini Yazdır
+print("🔐 Security & CSRF Configuration:")
+print(f"   - DEBUG Mode: {DEBUG}")
+print(f"   - SESSION_COOKIE_SAMESITE: {SESSION_COOKIE_SAMESITE}")
+print(f"   - CSRF_COOKIE_SAMESITE: {CSRF_COOKIE_SAMESITE}")
+print(f"   - SESSION_COOKIE_SECURE: {SESSION_COOKIE_SECURE}")
+print(f"   - CSRF_COOKIE_SECURE: {CSRF_COOKIE_SECURE}")
+print(f"   - CSRF_TRUSTED_ORIGINS: {CSRF_TRUSTED_ORIGINS}")
 
 # ==============================================================================
 # REST FRAMEWORK CONFIGURATION
