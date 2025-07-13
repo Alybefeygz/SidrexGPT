@@ -224,7 +224,7 @@ export function useRobotActivePDFs(robotId: number) {
 
 // Robot PDF Management hooks
 export function useRobotPDFList(robotId?: number, isActive?: boolean, pdfType?: string) {
-  return useApi(() => api.robotPDFs.list(robotId, isActive, pdfType), [robotId, isActive, pdfType], []);
+  return useApi(() => api.robotPDFs.list(robotId, isActive, pdfType), [robotId, isActive, pdfType]);
 }
 
 export function useRobotPDFActions() {
