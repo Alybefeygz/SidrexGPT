@@ -249,10 +249,6 @@ if DEBUG:
 # SECURITY, CSRF & CORS CONFIGURATION
 # ==============================================================================
 
-# Domain ayarları (genellikle None bırakılır)
-SESSION_COOKIE_DOMAIN = config('SESSION_COOKIE_DOMAIN', default=None)
-CSRF_COOKIE_DOMAIN = config('CSRF_COOKIE_DOMAIN', default=None)
-
 # Production ortamında (DEBUG=False) HTTPS ve güvenlik ayarlarını zorunlu kıl
 if not DEBUG:
     SESSION_COOKIE_SECURE = True
