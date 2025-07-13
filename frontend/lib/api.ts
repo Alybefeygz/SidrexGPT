@@ -82,7 +82,7 @@ export const ensureCSRFToken = async (): Promise<void> => {
 
     if (csrfTokenValue) {
       localStorage.setItem('csrfTokenValue', csrfTokenValue);
-      console.log('✅ CSRF token başarıyla alındı ve localStorage'a kaydedildi.');
+      console.log('CSRF token başarıyla alındı ve localStorage'a kaydedildi.');
     } else {
       throw new Error('CSRF token yanıt gövdesinde bulunamadı.');
     }
