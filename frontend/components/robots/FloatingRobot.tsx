@@ -11,7 +11,7 @@ export default function FloatingRobot() {
   }
 
   return (
-    <div className="fixed bottom-8 right-8 z-50 scale-75 origin-bottom-right">
+    <div className="fixed bottom-8 right-8 z-50">
       <FirstRobot
         onChatToggle={handleChatToggle}
         isOtherChatOpen={false}

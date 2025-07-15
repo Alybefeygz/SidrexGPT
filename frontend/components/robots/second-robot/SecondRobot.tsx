@@ -158,10 +158,10 @@ const SecondRobot = memo(function SecondRobot({ onChatToggle, isOtherChatOpen, i
   // ⚡ PERFORMANS: Memoized toggleChat
   const toggleChat = useCallback(() => {
     if (!isChatOpen && buttonRef.current && !isFloating) {
-      const rect = buttonRef.current.getBoundingClientRect()
+      // For iframe context, position chatbox relative to robot
       setChatPosition({
-        top: rect.bottom - 480 + window.scrollY,
-        left: rect.left - 450 + window.scrollX,
+        top: -390, // Position another 50px lower
+        left: -420, // Position to the left of robot
       })
     }
     const newChatState = !isChatOpen
@@ -170,7 +170,7 @@ const SecondRobot = memo(function SecondRobot({ onChatToggle, isOtherChatOpen, i
   }, [isChatOpen, isFloating, handleChatToggle])
 
   return (
-    <>
+    <div className="relative">
       <button
         ref={buttonRef}
         onClick={toggleChat}
@@ -234,7 +234,7 @@ const SecondRobot = memo(function SecondRobot({ onChatToggle, isOtherChatOpen, i
           isLoading={chatLoading}
         />
       )}
-    </>
+    </div>
   )
 })
 

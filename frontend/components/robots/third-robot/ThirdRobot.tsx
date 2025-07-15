@@ -145,10 +145,10 @@ export default function ThirdRobot({ onChatToggle, isOtherChatOpen, isFloating =
 
   const toggleChat = () => {
     if (!isChatOpen && buttonRef.current && !isFloating) {
-      const rect = buttonRef.current.getBoundingClientRect()
+      // For iframe context, position chatbox relative to robot
       setChatPosition({
-        top: rect.bottom - 480 + window.scrollY,
-        left: rect.left - 450 + window.scrollX,
+        top: -390, // Position another 50px lower
+        left: -420, // Position to the left of robot
       })
     }
     const newChatState = !isChatOpen
@@ -157,7 +157,7 @@ export default function ThirdRobot({ onChatToggle, isOtherChatOpen, isFloating =
   }
 
   return (
-    <>
+    <div className="relative">
       <button
         ref={buttonRef}
         onClick={toggleChat}
@@ -240,6 +240,6 @@ export default function ThirdRobot({ onChatToggle, isOtherChatOpen, isFloating =
           isLoading={chatLoading}
         />
       )}
-    </>
+    </div>
   )
 }
