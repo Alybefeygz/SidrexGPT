@@ -4,6 +4,7 @@ import type React from "react"
 import { useRef, useEffect, useState } from "react"
 import { Send, BookOpen, Info } from "lucide-react"
 import ReactMarkdown from 'react-markdown'
+import { useIsMobile } from "../../../hooks/use-mobile"
 
 interface Citation {
   source: string
@@ -31,6 +32,7 @@ interface FirstRobotChatBoxProps {
   handleKeyPress: (e: React.KeyboardEvent) => void
   onClose: () => void
   position: { top: number; left: number }
+  dimensions: { width: number; height: number }
   isFloating?: boolean
   isLoading?: boolean
 }
@@ -43,6 +45,7 @@ export default function FirstRobotChatBox({
   handleKeyPress,
   onClose,
   position,
+  dimensions,
   isFloating = false,
   isLoading = false,
 }: FirstRobotChatBoxProps) {
@@ -93,7 +96,7 @@ export default function FirstRobotChatBox({
 
   return (
     <div
-      className={`z-50 w-96 h-[30rem] bg-white rounded-lg shadow-xl border border-gray-200 flex flex-col animate-in slide-in-from-bottom-2 duration-300 ${
+      className={`z-50 bg-white rounded-lg shadow-xl border border-gray-200 flex flex-col animate-in slide-in-from-bottom-2 duration-300 ${
         isFloating ? "fixed bottom-4 right-32" : "absolute"
       }`}
       style={
@@ -101,8 +104,13 @@ export default function FirstRobotChatBox({
           ? {
               top: `${position.top}px`,
               left: `${position.left}px`,
+              width: `${dimensions.width}px`,
+              height: `${dimensions.height}px`,
             }
-          : {}
+          : {
+              width: `${dimensions.width}px`,
+              height: `${dimensions.height}px`,
+            }
       }
     >
       {/* Chat Header */}

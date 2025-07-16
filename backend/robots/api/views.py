@@ -6,7 +6,7 @@ from rest_framework.renderers import JSONRenderer, BrowsableAPIRenderer
 from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.reverse import reverse
-from robots.models import Robot, RobotPDF, Brand
+from robots.models import Robot, RobotPDF, Brand, ChatSession, ChatMessage
 from .permissions import CanAccessRobotData, CanAccessBrandData
 from .serializers import (
     RobotSerializer, RobotPDFSerializer, RobotPDFCreateSerializer,
@@ -20,6 +20,7 @@ import asyncio
 import subprocess
 import json
 from django.conf import settings
+from django.utils import timezone
 import logging
 
 logger = logging.getLogger(__name__)
@@ -795,6 +796,53 @@ class RobotChatView(APIView):
     permission_classes = [IsAuthenticated]
     throttle_classes = [ChatThrottle]
     serializer_class = ChatMessageSerializer
+    
+    def get_or_create_session(self, user, robot, session_id=None):
+        """Chat oturumunu al veya oluştur"""
+        if not session_id:
+            session_id = f"robot_{robot.id}_user_{user.id}_{timezone.now().strftime('%Y%m%d_%H%M%S')}"
+        
+        session, created = ChatSession.objects.get_or_create(
+            session_id=session_id,
+            user=user,
+            robot=robot,
+            defaults={
+                'is_active': True,
+                'user_ip': self.get_client_ip(),
+                'user_agent': self.get_user_agent()
+            }
+        )
+        return session
+    
+    def get_client_ip(self):
+        """Kullanıcının IP adresini al"""
+        x_forwarded_for = self.request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = self.request.META.get('REMOTE_ADDR')
+        return ip
+    
+    def get_user_agent(self):
+        """Kullanıcının user agent bilgisini al"""
+        return self.request.META.get('HTTP_USER_AGENT', '')
+    
+    def create_chat_message(self, session, user, robot, message, optimization_enabled=False):
+        """Chat mesajını oluştur ve kaydet"""
+        from django.utils import timezone
+        
+        chat_message = ChatMessage.objects.create(
+            session=session,
+            user=user,
+            robot=robot,
+            message_type='user',
+            user_message=message,
+            status='processing',
+            processing_started_at=timezone.now(),
+            optimization_enabled=optimization_enabled,
+            ip_address=self.get_client_ip()
+        )
+        return chat_message
 
     def get_robot_by_slug(self, slug):
         try:
@@ -820,6 +868,27 @@ class RobotChatView(APIView):
         if serializer.is_valid():
             message = serializer.validated_data['message']
             history = serializer.validated_data.get('history', [])
+            
+            # 📝 Chat oturumunu al veya oluştur
+            session_id = request.data.get('session_id')  # Frontend'den gelebilir
+            logger.info(f"📝 Chat oturumunu al veya oluştur - User: {request.user.username}, Robot: {robot.name}")
+            session = self.get_or_create_session(request.user, robot, session_id)
+            logger.info(f"📝 Session oluşturuldu/alındı - ID: {session.id}, Session ID: {session.session_id}")
+            
+            # 🔧 Optimizasyon modu kontrolü
+            from robots.services import is_optimization_enabled
+            optimization_enabled = is_optimization_enabled(robot.id)
+            
+            # 📝 Chat mesajını oluştur ve kaydet
+            logger.info(f"📝 Chat mesajını oluşturuluyor - Message: {message[:50]}...")
+            chat_message = self.create_chat_message(
+                session=session,
+                user=request.user,
+                robot=robot,
+                message=message,
+                optimization_enabled=optimization_enabled
+            )
+            logger.info(f"📝 Chat mesajı oluşturuldu - ID: {chat_message.id}, Status: {chat_message.status}")
 
             # 🚀 HIZLI YOL OPTİMİZASYONU: Basit sorguları anında yanıtla
             # Kullanıcının mesajını küçük harfe çevir ve boşlukları temizle
@@ -828,9 +897,18 @@ class RobotChatView(APIView):
             # Çok kısa veya genel selamlama mesajları için RAG ve AI'ı atla
             if len(normalized_message) < 4 or normalized_message in ['merhaba', 'selam', 'naber', 'hey', 'hi', 'hello']:
                 logger.info(f"Hızlı yol tetiklendi: '{message}'. Anında yanıt veriliyor.")
+                
+                # 📝 Hızlı yanıt için chat mesajını tamamla
+                quick_response = f"Merhaba! Size {robot.name} asistanı olarak nasıl yardımcı olabilirim?"
+                chat_message.mark_completed(
+                    ai_response=quick_response,
+                    citations_count=0,
+                    context_used=False
+                )
+                
                 # Markanın API sayacını artırmadan hızlı yanıt ver
                 return Response({
-                    "answer": f"Merhaba! Size {robot.name} asistanı olarak nasıl yardımcı olabilirim?",
+                    "answer": quick_response,
                     "citations": [],
                     "context_used": False
                 })
@@ -838,8 +916,12 @@ class RobotChatView(APIView):
             # Markanın API limitini kontrol et
             brand = robot.brand
             if brand.is_limit_exceeded() or brand.is_package_expired():
+                # 📝 Limit aşıldığı için mesajı başarısız olarak işaretle
+                error_message = "API kullanım limitiniz doldu veya paket süreniz sona erdi. Lütfen yöneticinizle iletişime geçin."
+                chat_message.mark_failed(error_message, 'limit_exceeded')
+                
                 return Response(
-                    {"answer": "API kullanım limitiniz doldu veya paket süreniz sona erdi. Lütfen yöneticinizle iletişime geçin."},
+                    {"answer": error_message},
                     status=status.HTTP_429_TOO_MANY_REQUESTS
                 )
 
@@ -857,14 +939,15 @@ class RobotChatView(APIView):
             # 🚀 OPTİMİZASYON: Optimizasyon modu kontrol et
             from robots.services import (
                 get_robot_system_prompt, 
-                is_optimization_enabled,
                 get_optimized_robot_pdf_contents_for_ai,
                 get_optimized_system_prompt,
                 get_robot_pdf_contents_for_ai
             )
             
-            optimization_enabled = is_optimization_enabled(robot.id)
             logger.info(f"🔧 Robot {robot.name} optimizasyon modu: {'AÇIK' if optimization_enabled else 'KAPALI'}")
+            
+            # 📝 Context ve citation bilgilerini mesaja ekle
+            context_size = 0
             
             if optimization_enabled:
                 # ⚡ OPTİMİZE MOD: Kısa sistem prompt'u + optimize PDF içeriği
@@ -872,10 +955,12 @@ class RobotChatView(APIView):
                 
                 # RAG yerine optimize PDF içeriği kullan
                 pdf_context = get_optimized_robot_pdf_contents_for_ai(robot)
-                logger.info(f"⚡ Optimize PDF içerik kullanıldı: {len(pdf_context)} karakter")
+                context_size = len(pdf_context)
+                logger.info(f"⚡ Optimize PDF içerik kullanıldı: {context_size} karakter")
             else:
                 # 🔄 STANDART MOD: Normal sistem prompt'u + RAG
                 system_prompt_base = get_robot_system_prompt(robot, message)
+                context_size = len(pdf_context)
                 logger.info(f"🔄 Standart mod: RAG kullanıldı")
             
             # PDF context'i sistem prompt'una ekle
@@ -892,6 +977,11 @@ BAĞLAM:
 
             # 3. Son Kullanıcı Mesajı
             messages.append({"role": "user", "content": message})
+            
+            # 📝 Chat mesajına context bilgilerini ekle
+            chat_message.context_size = context_size
+            chat_message.context_used = len(citations) > 0
+            chat_message.save(update_fields=['context_size', 'context_used'])
             
             try:
                 # ai-request.py script'ini çağır
@@ -931,6 +1021,13 @@ BAĞLAM:
 
                 brand.increment_api_count()
 
+                # 📝 Chat mesajını tamamlandı olarak işaretle
+                chat_message.mark_completed(
+                    ai_response=answer,
+                    citations_count=len(citations),
+                    context_used=len(citations) > 0
+                )
+
                 # Citations ile birlikte yanıt döndür
                 return Response({
                     "answer": answer,
@@ -939,23 +1036,59 @@ BAĞLAM:
                 })
 
             except FileNotFoundError:
+                error_message = "Yapay zeka betiği bulunamadı. Lütfen sistem yöneticisiyle iletişime geçin."
                 logger.error(f"AI script dosyası bulunamadı: {script_path}")
+                
+                # 📝 Chat mesajını başarısız olarak işaretle
+                chat_message.mark_failed(error_message, 'script_not_found')
+                
                 return Response(
-                    {"answer": "Yapay zeka betiği bulunamadı. Lütfen sistem yöneticisiyle iletişime geçin."},
+                    {"answer": error_message},
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
             except subprocess.CalledProcessError as e:
+                error_message = f"Yapay zeka yanıtı alınırken bir komut hatası oluştu: {e.stderr}"
                 logger.error(f"AI script hatası: {e.stderr}")
+                
+                # 📝 Chat mesajını başarısız olarak işaretle
+                chat_message.mark_failed(error_message, 'subprocess_error')
+                
                 return Response(
-                    {"answer": f"Yapay zeka yanıtı alınırken bir komut hatası oluştu: {e.stderr}"},
+                    {"answer": error_message},
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
             except Exception as e:
+                error_message = "Yapay zeka yanıtı alınırken genel bir hata oluştu."
                 logger.error(f"AI handler'da genel hata: {e}")
+                
+                # 📝 Chat mesajını başarısız olarak işaretle
+                chat_message.mark_failed(error_message, 'general_error')
+                
                 return Response(
-                    {"answer": "Yapay zeka yanıtı alınırken genel bir hata oluştu."},
+                    {"answer": error_message},
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
+        
+        # 📝 Validation hatası durumunda da mesaj oluştur (eğer robot bulunabiliyorsa)
+        try:
+            # Sadece validation hatası var, robot bulunabiliyorsa session ve message oluştur
+            session = self.get_or_create_session(request.user, robot)
+            chat_message = ChatMessage.objects.create(
+                session=session,
+                user=request.user,
+                robot=robot,
+                message_type='user',
+                user_message=request.data.get('message', ''),
+                status='failed',
+                processing_started_at=timezone.now(),
+                processing_ended_at=timezone.now(),
+                error_message=str(serializer.errors),
+                error_type='validation_error',
+                ip_address=self.get_client_ip()
+            )
+        except:
+            # Eğer robot bulunamazsa veya başka bir hata varsa sadece geç
+            pass
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

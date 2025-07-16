@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.utils import timezone
 from robots.services import download_pdf_content_from_drive, extract_text_from_pdf_stream
 import logging
 
@@ -554,3 +555,146 @@ class RobotSystemPrompt(models.Model):
         verbose_name_plural = 'Robot Sistem Promptları'
         ordering = ['-priority', '-created_at']
         unique_together = [('robot', 'prompt_type')]  # Her robot için her türden sadece bir prompt
+
+
+class ChatSession(models.Model):
+    """Chat oturumu modeli - kullanıcı ile robot arasındaki sohbet oturumu"""
+    
+    session_id = models.CharField(max_length=100, verbose_name="Oturum ID", help_text="Frontend'den gelen unique session ID")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='chat_sessions', verbose_name="Kullanıcı")
+    robot = models.ForeignKey(Robot, on_delete=models.CASCADE, related_name='chat_sessions', verbose_name="Robot")
+    started_at = models.DateTimeField(auto_now_add=True, verbose_name="Başlangıç Zamanı")
+    ended_at = models.DateTimeField(null=True, blank=True, verbose_name="Bitiş Zamanı")
+    is_active = models.BooleanField(default=True, verbose_name="Aktif mi?")
+    total_messages = models.PositiveIntegerField(default=0, verbose_name="Toplam Mesaj Sayısı")
+    total_response_time = models.DecimalField(max_digits=10, decimal_places=3, default=0.0, verbose_name="Toplam Yanıt Süresi (saniye)")
+    average_response_time = models.DecimalField(max_digits=8, decimal_places=3, default=0.0, verbose_name="Ortalama Yanıt Süresi (saniye)")
+    user_ip = models.GenericIPAddressField(null=True, blank=True, verbose_name="Kullanıcı IP")
+    user_agent = models.TextField(null=True, blank=True, verbose_name="User Agent")
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.robot.name} - {self.session_id}"
+    
+    def update_stats(self):
+        """Oturum istatistiklerini güncelle"""
+        messages = self.chat_messages.all()
+        self.total_messages = messages.count()
+        
+        # Yanıt süreleri var olan mesajları al
+        response_times = messages.exclude(response_time__isnull=True).values_list('response_time', flat=True)
+        if response_times:
+            self.total_response_time = sum(response_times)
+            self.average_response_time = self.total_response_time / len(response_times)
+        
+        self.save(update_fields=['total_messages', 'total_response_time', 'average_response_time'])
+    
+    def end_session(self):
+        """Oturumu sonlandır"""
+        self.is_active = False
+        self.ended_at = timezone.now()
+        self.save(update_fields=['is_active', 'ended_at'])
+    
+    class Meta:
+        verbose_name = 'Chat Oturumu'
+        verbose_name_plural = 'Chat Oturumları'
+        ordering = ['-started_at']
+        indexes = [
+            models.Index(fields=['user', 'robot', 'started_at']),
+            models.Index(fields=['session_id']),
+            models.Index(fields=['started_at']),
+        ]
+
+
+class ChatMessage(models.Model):
+    """Chat mesajı modeli - kullanıcı mesajları ve AI yanıtları"""
+    
+    MESSAGE_TYPE_CHOICES = [
+        ('user', 'Kullanıcı Mesajı'),
+        ('assistant', 'AI Yanıtı'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('processing', 'İşleniyor'),
+        ('completed', 'Tamamlandı'),
+        ('failed', 'Başarısız'),
+        ('timeout', 'Zaman Aşımı'),
+    ]
+    
+    session = models.ForeignKey(ChatSession, on_delete=models.CASCADE, related_name='chat_messages', verbose_name="Chat Oturumu")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='chat_messages', verbose_name="Kullanıcı")
+    robot = models.ForeignKey(Robot, on_delete=models.CASCADE, related_name='chat_messages', verbose_name="Robot")
+    message_type = models.CharField(max_length=10, choices=MESSAGE_TYPE_CHOICES, verbose_name="Mesaj Türü")
+    user_message = models.TextField(verbose_name="Kullanıcı Mesajı")
+    ai_response = models.TextField(null=True, blank=True, verbose_name="AI Yanıtı")
+    response_time = models.DecimalField(max_digits=8, decimal_places=3, null=True, blank=True, verbose_name="Yanıt Süresi (saniye)")
+    processing_started_at = models.DateTimeField(null=True, blank=True, verbose_name="İşlem Başlangıç Zamanı")
+    processing_ended_at = models.DateTimeField(null=True, blank=True, verbose_name="İşlem Bitiş Zamanı")
+    status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='processing', verbose_name="Durum")
+    ai_model_used = models.CharField(max_length=100, null=True, blank=True, verbose_name="Kullanılan AI Modeli")
+    tokens_used = models.PositiveIntegerField(null=True, blank=True, verbose_name="Kullanılan Token Sayısı")
+    optimization_enabled = models.BooleanField(default=False, verbose_name="Optimizasyon Açık mıydı?")
+    context_used = models.BooleanField(default=False, verbose_name="Context Kullanıldı mı?")
+    context_size = models.PositiveIntegerField(null=True, blank=True, verbose_name="Context Boyutu (karakter)")
+    citations_count = models.PositiveIntegerField(default=0, verbose_name="Alıntı Sayısı")
+    error_message = models.TextField(null=True, blank=True, verbose_name="Hata Mesajı")
+    error_type = models.CharField(max_length=50, null=True, blank=True, verbose_name="Hata Türü")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Oluşturulma Zamanı")
+    ip_address = models.GenericIPAddressField(null=True, blank=True, verbose_name="IP Adresi")
+    user_feedback = models.IntegerField(
+        null=True, blank=True,
+        choices=[(1, '👎 Kötü'), (2, '😐 Orta'), (3, '👍 İyi')],
+        verbose_name="Kullanıcı Geri Bildirimi"
+    )
+    admin_notes = models.TextField(null=True, blank=True, verbose_name="Admin Notları")
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.robot.name} - {self.created_at.strftime('%Y-%m-%d %H:%M')}"
+    
+    def calculate_response_time(self):
+        """Yanıt süresini hesapla"""
+        if self.processing_started_at and self.processing_ended_at:
+            delta = self.processing_ended_at - self.processing_started_at
+            self.response_time = delta.total_seconds()
+            return self.response_time
+        return None
+    
+    def mark_completed(self, ai_response, citations_count=0, context_used=False):
+        """Mesajı tamamlandı olarak işaretle"""
+        from django.utils import timezone
+        
+        self.ai_response = ai_response
+        self.citations_count = citations_count
+        self.context_used = context_used
+        self.status = 'completed'
+        self.processing_ended_at = timezone.now()
+        self.calculate_response_time()
+        self.save()
+        
+        # Session istatistiklerini güncelle
+        self.session.update_stats()
+    
+    def mark_failed(self, error_message, error_type=None):
+        """Mesajı başarısız olarak işaretle"""
+        from django.utils import timezone
+        
+        self.error_message = error_message
+        self.error_type = error_type or 'unknown'
+        self.status = 'failed'
+        self.processing_ended_at = timezone.now()
+        self.calculate_response_time()
+        self.save()
+        
+        # Session istatistiklerini güncelle
+        self.session.update_stats()
+    
+    class Meta:
+        verbose_name = 'Chat Mesajı'
+        verbose_name_plural = 'Chat Mesajları'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', 'robot', 'created_at']),
+            models.Index(fields=['session', 'created_at']),
+            models.Index(fields=['status']),
+            models.Index(fields=['response_time']),
+            models.Index(fields=['created_at']),
+        ]

@@ -9,8 +9,9 @@ from rest_framework.views import APIView
 from rest_framework.generics import GenericAPIView
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
-from robots.models import Robot, Brand
+from robots.models import Robot, Brand, ChatSession, ChatMessage
 from robots.api.serializers import ChatMessageSerializer
+from django.utils import timezone
 
 # Router oluştur
 router = DefaultRouter()
@@ -312,6 +313,64 @@ class RobotChatView(GenericAPIView):
     serializer_class = ChatMessageSerializer
     permission_classes = []  # Herkese açık - login olmadan erişilebilir
     
+    def get_or_create_session(self, user, robot, session_id=None):
+        """Chat oturumunu al veya oluştur"""
+        if not session_id:
+            session_id = f"robot_{robot.id}_user_{user.id if user.is_authenticated else 'anonymous'}_{timezone.now().strftime('%Y%m%d_%H%M%S')}"
+        
+        # Authenticated user için session oluştur
+        if user.is_authenticated:
+            session, created = ChatSession.objects.get_or_create(
+                session_id=session_id,
+                user=user,
+                robot=robot,
+                defaults={
+                    'is_active': True,
+                    'user_ip': self.get_client_ip(),
+                    'user_agent': self.get_user_agent()
+                }
+            )
+        else:
+            # Anonymous user için session oluştur (user=None)
+            session, created = ChatSession.objects.get_or_create(
+                session_id=session_id,
+                user=None,
+                robot=robot,
+                defaults={
+                    'is_active': True,
+                    'user_ip': self.get_client_ip(),
+                    'user_agent': self.get_user_agent()
+                }
+            )
+        return session
+    
+    def get_client_ip(self):
+        """Kullanıcının IP adresini al"""
+        x_forwarded_for = self.request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = self.request.META.get('REMOTE_ADDR')
+        return ip
+    
+    def get_user_agent(self):
+        """Kullanıcının user agent bilgisini al"""
+        return self.request.META.get('HTTP_USER_AGENT', '')
+    
+    def create_chat_message(self, session, user, robot, message):
+        """Chat mesajını oluştur ve kaydet"""
+        chat_message = ChatMessage.objects.create(
+            session=session,
+            user=user if user.is_authenticated else None,
+            robot=robot,
+            message_type='user',
+            user_message=message,
+            status='processing',
+            processing_started_at=timezone.now(),
+            ip_address=self.get_client_ip()
+        )
+        return chat_message
+    
     def get_robot_by_slug(self, slug):
         """Slug'a göre robot bul"""
         if slug == 'sidrexgpt':
@@ -380,6 +439,19 @@ class RobotChatView(GenericAPIView):
         
         logger.info(f"🚀 CHAT İSTEĞİ BAŞLADI - Robot: {slug} | Kullanıcı Mesajı: '{user_message[:50]}{'...' if len(user_message) > 50 else ''}' | Başlangıç Zamanı: {time.strftime('%H:%M:%S', time.localtime(request_start_time))}")
         
+        # 📝 Robot'u bul ve session/message oluştur
+        robot = self.get_robot_by_slug(slug)
+        if not robot:
+            return Response({'error': 'Robot bulunamadı'}, status=status.HTTP_404_NOT_FOUND)
+        
+        # 📝 Chat session ve message oluştur
+        session_id = request.data.get('session_id')
+        session = self.get_or_create_session(request.user, robot, session_id)
+        logger.info(f"📝 Chat session oluşturuldu - ID: {session.id}")
+        
+        chat_message = self.create_chat_message(session, request.user, robot, user_message)
+        logger.info(f"📝 Chat message oluşturuldu - ID: {chat_message.id}")
+        
         # Sidrex markası için API istek kontrolü ve sayaç artışı
         try:
             sidrex_brand = Brand.get_or_create_sidrex()
@@ -389,6 +461,10 @@ class RobotChatView(GenericAPIView):
                 # ⏱️ ZAMAN SAYACI BİTİŞ - Paket süresi doldu
                 elapsed_time = time.time() - request_start_time
                 logger.warning(f"📦❌ PAKET SÜRESİ DOLDU - Robot: {slug} | Süre: {elapsed_time:.2f}s | Paket: {sidrex_brand.paket_turu}")
+                
+                # 📝 Chat message'ı başarısız olarak işaretle
+                error_message = "Paket sürem doldu maalesef sana cevap veremeyeceğim... ⏰ Lütfen paketinizi yenileyin."
+                chat_message.mark_failed(error_message, 'package_expired')
                 
                 return Response({
                     'robot_name': 'SidrexGPT',
@@ -408,6 +484,10 @@ class RobotChatView(GenericAPIView):
                 # ⏱️ ZAMAN SAYACI BİTİŞ - İstek sınırı aşıldı
                 elapsed_time = time.time() - request_start_time
                 logger.warning(f"🚫 İSTEK SINIRI AŞILDI - Robot: {slug} | Süre: {elapsed_time:.2f}s | İstek: {sidrex_brand.total_api_requests}/{sidrex_brand.request_limit}")
+                
+                # 📝 Chat message'ı başarısız olarak işaretle
+                error_message = "Ben çok yoruldum maalesef sana cevap veremeyeceğim... 😴 Lütfen daha sonra tekrar deneyin."
+                chat_message.mark_failed(error_message, 'limit_exceeded')
                 
                 return Response({
                     'robot_name': 'SidrexGPT',
@@ -431,10 +511,6 @@ class RobotChatView(GenericAPIView):
             
         except Exception as e:
             logger.warning(f"Brand API count increment failed: {str(e)}")
-        
-        robot = self.get_robot_by_slug(slug)
-        if not robot:
-            return Response({'error': 'Robot bulunamadı'}, status=status.HTTP_404_NOT_FOUND)
         
         # Serializer ile veri doğrulama
         serializer = self.get_serializer(data=request.data)
@@ -558,12 +634,48 @@ YANIT:
 """
 
                 # AI'dan yanıt al - PDF içerikleri ile
-                response_message = ai_handler.ask_question(message, system_prompt=system_prompt)
+                # ask_question'ı çağırmak yerine direkt chat request yaparak token bilgilerini alalım
+                messages = []
+                if system_prompt:
+                    messages.append({"role": "system", "content": system_prompt})
+                messages.append({"role": "user", "content": message})
+                
+                # Direct AI API call with token tracking
+                ai_response_data = ai_handler.make_chat_request(messages)
+                
+                # Response kontrolü
+                if "error" in ai_response_data:
+                    response_message = ai_response_data["error"]
+                    # Token bilgilerini sıfırla
+                    ai_model_used = 'deepseek/deepseek-r1-distill-llama-70b:free'
+                    tokens_used = 0
+                    context_size = len(system_prompt) if system_prompt else 0
+                else:
+                    # Başarılı response
+                    response_message = ai_response_data["choices"][0]["message"]["content"]
+                    
+                    # Token bilgilerini response'dan al
+                    usage_data = ai_response_data.get('usage', {})
+                    tokens_used = usage_data.get('total_tokens', 0)
+                    
+                    # Model bilgisini al
+                    ai_model_used = ai_response_data.get('model', 'deepseek/deepseek-r1-distill-llama-70b:free')
+                    context_size = len(system_prompt) if system_prompt else 0
+                    
+                    # Debug log
+                    logger.info(f"🔢 TOKEN BİLGİLERİ - Model: {ai_model_used} | Total Tokens: {tokens_used} | Context Size: {context_size}")
                 
                 # ⏱️ AI İŞLEME SÜRESİNİ HESAPLA
                 ai_end_time = time.time()
                 ai_processing_time = ai_end_time - ai_start_time
                 logger.info(f"🤖✅ AI İŞLEME TAMAMLANDI - Robot: {slug} | AI Süresi: {ai_processing_time:.2f}s | Yanıt Uzunluğu: {len(response_message)} karakter")
+                
+                # 📝 AI model bilgilerini chat message'a ekle
+                chat_message.ai_model_used = ai_model_used
+                chat_message.context_size = context_size
+                chat_message.tokens_used = tokens_used
+                
+                chat_message.save(update_fields=['ai_model_used', 'context_size', 'tokens_used'])
                 
                 # Response size kontrolü - çok uzun cevapları kısalt
                 if len(response_message) > 2000:
@@ -588,10 +700,17 @@ YANIT:
                 # Check for specific network errors
                 if 'Broken pipe' in str(e) or 'Connection reset' in str(e):
                     logger.info(f"🌐❌ AĞ HATASI - Robot: {slug} | Süre: {elapsed_time:.2f}s")
+                    
+                    # 📝 Chat message'ı network hatası olarak işaretle
+                    chat_message.mark_failed('Ağ bağlantısı kesildi', 'network_error')
+                    
                     return Response({'error': 'Ağ bağlantısı kesildi'}, status=499)
                 
                 # Generic error handling
                 response_message = "Üzgünüm, şu anda teknik bir sorun yaşıyorum. Lütfen daha sonra tekrar deneyin."
+                
+                # 📝 Chat message'ı genel hata olarak işaretle
+                chat_message.mark_failed(f"{type(e).__name__}: {str(e)}", 'ai_processing_error')
             
             # Paket ve istek bilgilerini al
             try:
@@ -614,6 +733,13 @@ YANIT:
             request_end_time = time.time()
             total_elapsed_time = request_end_time - request_start_time
             logger.info(f"✅ CHAT İSTEĞİ TAMAMLANDI - Robot: {slug} | Toplam Süre: {total_elapsed_time:.2f}s | Bitiş Zamanı: {time.strftime('%H:%M:%S', time.localtime(request_end_time))}")
+            
+            # 📝 Chat message'ı tamamlandı olarak işaretle
+            chat_message.mark_completed(
+                ai_response=response_message,
+                citations_count=0,  # Bu sistemde citation yok
+                context_used=bool(pdf_contents)
+            )
             
             return Response({
                 'robot_name': robot.name,
@@ -639,6 +765,27 @@ YANIT:
             # ⏱️ ZAMAN SAYACI BİTİŞ - Serializer hatası
             elapsed_time = time.time() - request_start_time
             logger.error(f"📝❌ SERİALİZER HATASI - Robot: {slug} | Süre: {elapsed_time:.2f}s | Hatalar: {serializer.errors}")
+            
+            # 📝 Serializer hatası için chat message oluştur (eğer robot mevcutsa)
+            try:
+                if 'robot' in locals():
+                    session = self.get_or_create_session(request.user, robot)
+                    ChatMessage.objects.create(
+                        session=session,
+                        user=request.user if request.user.is_authenticated else None,
+                        robot=robot,
+                        message_type='user',
+                        user_message=request.data.get('message', ''),
+                        status='failed',
+                        processing_started_at=timezone.now(),
+                        processing_ended_at=timezone.now(),
+                        error_message=str(serializer.errors),
+                        error_type='validation_error',
+                        ip_address=self.get_client_ip()
+                    )
+            except:
+                pass
+            
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 # Router oluştur

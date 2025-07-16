@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Robot, RobotPDF, Brand, RobotSystemPrompt
+from .models import Robot, RobotPDF, Brand, RobotSystemPrompt, ChatSession, ChatMessage
 from django.utils.html import format_html
 
 # Register your models here.
@@ -220,3 +220,139 @@ class RobotSystemPromptAdmin(admin.ModelAdmin):
     
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('robot')
+
+
+class ChatMessageInline(admin.TabularInline):
+    model = ChatMessage
+    extra = 0
+    readonly_fields = ['created_at', 'response_time', 'status', 'citations_count', 'context_used']
+    fields = ['user_message', 'ai_response', 'status', 'response_time', 'citations_count', 'context_used', 'created_at']
+    
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('user', 'robot')
+
+
+@admin.register(ChatSession)
+class ChatSessionAdmin(admin.ModelAdmin):
+    list_display = ['session_id', 'user', 'robot', 'total_messages', 'average_response_time', 'is_active', 'started_at', 'ended_at']
+    list_filter = ['is_active', 'robot', 'started_at', 'ended_at']
+    search_fields = ['session_id', 'user__username', 'robot__name']
+    readonly_fields = ['started_at', 'ended_at', 'total_messages', 'total_response_time', 'average_response_time']
+    list_editable = ['is_active']
+    ordering = ['-started_at']
+    inlines = [ChatMessageInline]
+    
+    fieldsets = (
+        ('Oturum Bilgileri', {
+            'fields': ('session_id', 'user', 'robot', 'is_active')
+        }),
+        ('İstatistikler', {
+            'fields': ('total_messages', 'total_response_time', 'average_response_time')
+        }),
+        ('Zaman Bilgileri', {
+            'fields': ('started_at', 'ended_at')
+        }),
+        ('Teknik Bilgiler', {
+            'fields': ('user_ip', 'user_agent'),
+            'classes': ['collapse']
+        }),
+    )
+    
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('user', 'robot')
+    
+    actions = ['end_selected_sessions']
+    
+    def end_selected_sessions(self, request, queryset):
+        """Seçili oturumları sonlandır"""
+        count = 0
+        for session in queryset.filter(is_active=True):
+            session.end_session()
+            count += 1
+        
+        self.message_user(request, f'{count} oturum sonlandırıldı.')
+    end_selected_sessions.short_description = 'Seçili oturumları sonlandır'
+
+
+@admin.register(ChatMessage)
+class ChatMessageAdmin(admin.ModelAdmin):
+    list_display = ['get_user_display', 'get_robot_display', 'get_message_preview', 'status', 'response_time', 'citations_count', 'context_used', 'created_at']
+    list_filter = ['status', 'context_used', 'optimization_enabled', 'robot', 'created_at']
+    search_fields = ['user__username', 'robot__name', 'user_message', 'ai_response']
+    readonly_fields = ['created_at', 'processing_started_at', 'processing_ended_at', 'response_time', 'session', 'user', 'robot']
+    ordering = ['-created_at']
+    date_hierarchy = 'created_at'
+    
+    fieldsets = (
+        ('Temel Bilgiler', {
+            'fields': ('session', 'user', 'robot', 'message_type', 'status')
+        }),
+        ('Mesaj İçeriği', {
+            'fields': ('user_message', 'ai_response'),
+            'classes': ['wide']
+        }),
+        ('İşlem Bilgileri', {
+            'fields': ('processing_started_at', 'processing_ended_at', 'response_time', 'ai_model_used', 'tokens_used')
+        }),
+        ('Context ve Optimizasyon', {
+            'fields': ('optimization_enabled', 'context_used', 'context_size', 'citations_count')
+        }),
+        ('Hata Bilgileri', {
+            'fields': ('error_message', 'error_type'),
+            'classes': ['collapse']
+        }),
+        ('Teknik Bilgiler', {
+            'fields': ('ip_address', 'user_feedback', 'admin_notes'),
+            'classes': ['collapse']
+        }),
+        ('Zaman Bilgileri', {
+            'fields': ('created_at',)
+        }),
+    )
+    
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('user', 'robot', 'session')
+    
+    def get_user_display(self, obj):
+        """Kullanıcıyı göster"""
+        return f"👤 {obj.user.username}"
+    get_user_display.short_description = 'Kullanıcı'
+    
+    def get_robot_display(self, obj):
+        """Robot'u göster"""
+        return f"🤖 {obj.robot.name}"
+    get_robot_display.short_description = 'Robot'
+    
+    def get_message_preview(self, obj):
+        """Mesaj önizlemesi"""
+        preview = obj.user_message[:100]
+        if len(obj.user_message) > 100:
+            preview += "..."
+        return preview
+    get_message_preview.short_description = 'Mesaj Önizleme'
+    
+    def get_status_display(self, obj):
+        """Durum göstergesi"""
+        status_icons = {
+            'processing': '⏳',
+            'completed': '✅',
+            'failed': '❌',
+            'timeout': '⏰'
+        }
+        icon = status_icons.get(obj.status, '❓')
+        return f"{icon} {obj.get_status_display()}"
+    get_status_display.short_description = 'Durum'
+    
+    actions = ['mark_as_completed', 'mark_as_failed']
+    
+    def mark_as_completed(self, request, queryset):
+        """Seçili mesajları tamamlandı olarak işaretle"""
+        count = queryset.filter(status='processing').update(status='completed')
+        self.message_user(request, f'{count} mesaj tamamlandı olarak işaretlendi.')
+    mark_as_completed.short_description = 'Seçili mesajları tamamlandı olarak işaretle'
+    
+    def mark_as_failed(self, request, queryset):
+        """Seçili mesajları başarısız olarak işaretle"""
+        count = queryset.filter(status='processing').update(status='failed')
+        self.message_user(request, f'{count} mesaj başarısız olarak işaretlendi.')
+    mark_as_failed.short_description = 'Seçili mesajları başarısız olarak işaretle'

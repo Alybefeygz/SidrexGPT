@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from robots.models import Robot, RobotPDF, Brand
+from robots.models import Robot, RobotPDF, Brand, ChatSession, ChatMessage
 from robots.utils import upload_pdf_to_drive
 
 
@@ -86,9 +86,63 @@ class RobotPDFCreateSerializer(serializers.ModelSerializer):
 class ChatMessageSerializer(serializers.Serializer):
     """Chat mesajı için serializer"""
     message = serializers.CharField(required=True, max_length=1000)
+    session_id = serializers.CharField(required=False, max_length=100, help_text="Frontend'den gelen session ID")
+    history = serializers.ListField(required=False, default=list, help_text="Konuşma geçmişi")
     
     def validate_message(self, value):
         """Mesaj validasyonu"""
         if not value.strip():
             raise serializers.ValidationError("Mesaj boş olamaz.")
-        return value.strip() 
+        return value.strip()
+    
+    def validate_history(self, value):
+        """Geçmiş mesajları validasyonu"""
+        if not isinstance(value, list):
+            return []
+        
+        # History'deki her elemanın doğru formatı kontrol et
+        validated_history = []
+        for item in value:
+            if isinstance(item, dict) and 'role' in item and 'content' in item:
+                if item['role'] in ['user', 'assistant', 'system']:
+                    validated_history.append(item)
+        
+        return validated_history
+
+
+class ChatSessionSerializer(serializers.ModelSerializer):
+    """Chat oturumu için serializer"""
+    total_messages = serializers.ReadOnlyField()
+    average_response_time = serializers.ReadOnlyField()
+    user_username = serializers.CharField(source='user.username', read_only=True)
+    robot_name = serializers.CharField(source='robot.name', read_only=True)
+    
+    class Meta:
+        model = ChatSession
+        fields = [
+            'id', 'session_id', 'user', 'user_username', 'robot', 'robot_name',
+            'started_at', 'ended_at', 'is_active', 'total_messages', 
+            'average_response_time', 'user_ip'
+        ]
+        read_only_fields = ['user', 'robot', 'started_at', 'ended_at', 'total_messages', 'average_response_time']
+
+
+class ChatMessageDetailSerializer(serializers.ModelSerializer):
+    """Chat mesajı detayları için serializer"""
+    user_username = serializers.CharField(source='user.username', read_only=True)
+    robot_name = serializers.CharField(source='robot.name', read_only=True)
+    session_id = serializers.CharField(source='session.session_id', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    
+    class Meta:
+        model = ChatMessage
+        fields = [
+            'id', 'session', 'session_id', 'user', 'user_username', 'robot', 'robot_name',
+            'message_type', 'user_message', 'ai_response', 'status', 'status_display',
+            'response_time', 'citations_count', 'context_used', 'optimization_enabled',
+            'error_message', 'error_type', 'created_at', 'user_feedback'
+        ]
+        read_only_fields = [
+            'session', 'user', 'robot', 'response_time', 'citations_count', 
+            'context_used', 'optimization_enabled', 'error_message', 'error_type', 'created_at'
+        ] 

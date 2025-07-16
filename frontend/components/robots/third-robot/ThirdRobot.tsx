@@ -4,6 +4,7 @@ import type React from "react"
 import { useState, useRef, useEffect } from "react"
 import ThirdRobotChatBox from "./ThirdRobotChatBox"
 import { useRobotChat } from "../../../hooks/use-api"
+import { useIsMobile } from "../../../hooks/use-mobile"
 import { toast } from "sonner"
 
 interface ThirdRobotProps {
@@ -39,6 +40,9 @@ interface Message {
 }
 
 export default function ThirdRobot({ onChatToggle, isOtherChatOpen, isFloating = false }: ThirdRobotProps) {
+  // Mobile detection
+  const isMobile = useIsMobile()
+  
   // Chat state
   const [isChatOpen, setIsChatOpen] = useState(false)
   const [messages, setMessages] = useState<Message[]>([
@@ -74,6 +78,52 @@ export default function ThirdRobot({ onChatToggle, isOtherChatOpen, isFloating =
       setIsHovered(false)
     }
   }, [isOtherChatOpen, isChatOpen])
+
+  // Calculate responsive dimensions for chatbox
+  const calculateChatboxDimensions = () => {
+    const screenWidth = window.innerWidth
+    let chatboxWidth = 384
+    let chatboxHeight = 480
+    
+    if (screenWidth < 500) {
+      const scale = screenWidth / 500
+      chatboxWidth = Math.max(280, 384 * scale)
+      chatboxHeight = Math.max(360, 480 * scale)
+    }
+    
+    return { chatboxWidth, chatboxHeight }
+  }
+
+  // Update chatbox position when mobile state changes while chat is open
+  useEffect(() => {
+    if (isChatOpen && !isFloating && buttonRef.current) {
+      if (isMobile) {
+        // Mobile: center chatbox on screen with 1px right offset
+        const rect = buttonRef.current.getBoundingClientRect()
+        const screenHeight = window.innerHeight
+        const screenWidth = window.innerWidth
+        
+        // Calculate responsive dimensions using centralized function
+        const { chatboxWidth, chatboxHeight } = calculateChatboxDimensions()
+        
+        const verticalCenter = screenHeight / 2
+        const horizontalCenter = screenWidth / 2
+        const chatboxTop = verticalCenter - (chatboxHeight / 2) - 140 // 140px higher (60px down from previous)
+        const chatboxLeft = horizontalCenter - (chatboxWidth / 2) + 1 // Center + 1px right offset
+        
+        setChatPosition({
+          top: chatboxTop - rect.top - window.scrollY,
+          left: chatboxLeft - rect.left - window.scrollX,
+        })
+      } else {
+        // Desktop: original position
+        setChatPosition({
+          top: -390,
+          left: -420,
+        })
+      }
+    }
+  }, [isMobile, isChatOpen, isFloating])
 
   const sendMessage = async () => {
     if (inputValue.trim() === "" || chatLoading) return
@@ -146,10 +196,31 @@ export default function ThirdRobot({ onChatToggle, isOtherChatOpen, isFloating =
   const toggleChat = () => {
     if (!isChatOpen && buttonRef.current && !isFloating) {
       // For iframe context, position chatbox relative to robot
-      setChatPosition({
-        top: -390, // Position another 50px lower
-        left: -420, // Position to the left of robot
-      })
+      if (isMobile) {
+        // Mobile: center chatbox on screen with 1px right offset
+        const rect = buttonRef.current.getBoundingClientRect()
+        const screenHeight = window.innerHeight
+        const screenWidth = window.innerWidth
+        
+        // Calculate responsive dimensions using centralized function
+        const { chatboxWidth, chatboxHeight } = calculateChatboxDimensions()
+        
+        const verticalCenter = screenHeight / 2
+        const horizontalCenter = screenWidth / 2
+        const chatboxTop = verticalCenter - (chatboxHeight / 2) - 140 // 140px higher (60px down from previous)
+        const chatboxLeft = horizontalCenter - (chatboxWidth / 2) + 1 // Center + 1px right offset
+        
+        setChatPosition({
+          top: chatboxTop - rect.top - window.scrollY,
+          left: chatboxLeft - rect.left - window.scrollX,
+        })
+      } else {
+        // Desktop: original position
+        setChatPosition({
+          top: -390,
+          left: -420,
+        })
+      }
     }
     const newChatState = !isChatOpen
     setIsChatOpen(newChatState)
