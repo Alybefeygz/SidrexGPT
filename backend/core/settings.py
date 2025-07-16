@@ -291,7 +291,7 @@ CORS_EXPOSE_HEADERS = ['content-type', 'x-csrftoken', 'set-cookie']
 CORS_PREFLIGHT_MAX_AGE = 86400
 
 # Yapılandırma Bilgisini Yazdır
-print("🔐 Security & CSRF Configuration:")
+print("Security & CSRF Configuration:")
 print(f"   - DEBUG Mode: {DEBUG}")
 print(f"   - SESSION_COOKIE_SAMESITE: {SESSION_COOKIE_SAMESITE}")
 print(f"   - CSRF_COOKIE_SAMESITE: {CSRF_COOKIE_SAMESITE}")

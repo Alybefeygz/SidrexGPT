@@ -561,7 +561,7 @@ class ChatSession(models.Model):
     """Chat oturumu modeli - kullanıcı ile robot arasındaki sohbet oturumu"""
     
     session_id = models.CharField(max_length=100, verbose_name="Oturum ID", help_text="Frontend'den gelen unique session ID")
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='chat_sessions', verbose_name="Kullanıcı")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='chat_sessions', verbose_name="Kullanıcı", null=True, blank=True)
     robot = models.ForeignKey(Robot, on_delete=models.CASCADE, related_name='chat_sessions', verbose_name="Robot")
     started_at = models.DateTimeField(auto_now_add=True, verbose_name="Başlangıç Zamanı")
     ended_at = models.DateTimeField(null=True, blank=True, verbose_name="Bitiş Zamanı")
@@ -621,7 +621,7 @@ class ChatMessage(models.Model):
     ]
     
     session = models.ForeignKey(ChatSession, on_delete=models.CASCADE, related_name='chat_messages', verbose_name="Chat Oturumu")
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='chat_messages', verbose_name="Kullanıcı")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='chat_messages', verbose_name="Kullanıcı", null=True, blank=True)
     robot = models.ForeignKey(Robot, on_delete=models.CASCADE, related_name='chat_messages', verbose_name="Robot")
     message_type = models.CharField(max_length=10, choices=MESSAGE_TYPE_CHOICES, verbose_name="Mesaj Türü")
     user_message = models.TextField(verbose_name="Kullanıcı Mesajı")
