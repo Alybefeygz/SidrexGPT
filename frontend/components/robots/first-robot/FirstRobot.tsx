@@ -59,16 +59,16 @@ export default function FirstRobot({ onChatToggle, isOtherChatOpen, isFloating =
   // Calculate responsive dimensions for chatbox
   const calculateChatboxDimensions = () => {
     const screenWidth = window.innerWidth
-    let chatboxWidth = 384
-    let chatboxHeight = 480
+    let width = 384
+    let height = 480
     
     if (screenWidth < 500) {
       const scale = screenWidth / 500
-      chatboxWidth = Math.max(280, 384 * scale)
-      chatboxHeight = Math.max(360, 480 * scale)
+      width = Math.max(280, 384 * scale)
+      height = Math.max(360, 480 * scale)
     }
     
-    return { chatboxWidth, chatboxHeight }
+    return { width, height }
   }
 
   // Robot Chat API integration
@@ -143,7 +143,7 @@ export default function FirstRobot({ onChatToggle, isOtherChatOpen, isFloating =
         const screenWidth = window.innerWidth
         
         // Calculate responsive dimensions using centralized function
-        const { chatboxWidth, chatboxHeight } = calculateChatboxDimensions()
+        const { width: chatboxWidth, height: chatboxHeight } = calculateChatboxDimensions()
         
         const verticalCenter = screenHeight / 2
         const horizontalCenter = screenWidth / 2
@@ -246,7 +246,7 @@ export default function FirstRobot({ onChatToggle, isOtherChatOpen, isFloating =
         const screenWidth = window.innerWidth
         
         // Calculate responsive dimensions using centralized function
-        const { chatboxWidth, chatboxHeight } = calculateChatboxDimensions()
+        const { width: chatboxWidth, height: chatboxHeight } = calculateChatboxDimensions()
         
         const verticalCenter = screenHeight / 2
         const horizontalCenter = screenWidth / 2
