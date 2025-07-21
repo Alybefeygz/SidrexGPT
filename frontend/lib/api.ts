@@ -177,13 +177,19 @@ apiClient.interceptors.response.use(
   },
   async (error) => {
     if (error.response?.status === 401) {
-      // Router kullanarak soft navigation yap (hard redirect yerine)
-      if (router) {
-        router.push('/yonetim');
-      } else if (typeof window !== 'undefined') {
-        // Fallback olarak hard redirect (sadece router yoksa)
-        console.warn('Router not available, using hard redirect as fallback');
-        window.location.href = '/yonetim';
+      // Sadece admin/yönetim sayfalarında login'e yönlendir
+      const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
+      const isAdminPath = currentPath.includes('/yonetim') || currentPath.includes('/users') || currentPath.includes('/brands') || currentPath.includes('/api-test');
+      
+      if (isAdminPath) {
+        // Router kullanarak soft navigation yap (hard redirect yerine)
+        if (router) {
+          router.push('/yonetim');
+        } else if (typeof window !== 'undefined') {
+          // Fallback olarak hard redirect (sadece router yoksa)
+          console.warn('Router not available, using hard redirect as fallback');
+          window.location.href = '/yonetim';
+        }
       }
     }
     
