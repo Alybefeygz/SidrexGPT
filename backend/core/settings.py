@@ -36,7 +36,7 @@ if not SECRET_KEY:
 DEBUG = config('DEBUG', default=False, cast=bool)
 
 # Allowed hosts - production için mutlaka belirtilmeli
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=lambda v: ['localhost', '127.0.0.1', 'sidrexgpt-backend.onrender.com'] + [h.strip() for h in v.split(',') if h.strip()])
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=lambda v: ['localhost', '127.0.0.1', 'sidrexgpt-backend.onrender.com', 'sidrexgpt-test-backend.onrender.com'] + [h.strip() for h in v.split(',') if h.strip()])
 
 # Trust the 'X-Forwarded-Proto' header from the reverse proxy (Render)
 # This is crucial for secure cookies and HTTPS redirects to work correctly.
@@ -232,8 +232,10 @@ FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:3000')
 
 # CORS allowed origins
 CORS_ALLOWED_ORIGINS = [
-    "https://sidrexgpt-frontend.onrender.com",  # Frontend URL'si
-    "https://sidrexgpt-backend.onrender.com",   # Backend URL'si
+    "https://sidrexgpt-frontend.onrender.com",  # Eski Frontend URL'si
+    "https://sidrexgpt-backend.onrender.com",   # Eski Backend URL'si
+    "https://sidrexgpt-test-frontend.onrender.com",  # Yeni Test Frontend URL'si
+    "https://sidrexgpt-test-backend.onrender.com",   # Yeni Test Backend URL'si
 ]
 
 if DEBUG:
@@ -274,6 +276,8 @@ ADDITIONAL_TRUSTED_ORIGINS = config('ADDITIONAL_TRUSTED_ORIGINS', default='', ca
 CSRF_TRUSTED_ORIGINS = [
     "https://sidrexgpt-backend.onrender.com",
     "https://sidrexgpt-frontend.onrender.com",
+    "https://sidrexgpt-test-backend.onrender.com",
+    "https://sidrexgpt-test-frontend.onrender.com",
 ] + CORS_ALLOWED_ORIGINS + ADDITIONAL_TRUSTED_ORIGINS
 
 # CSRF_TRUSTED_ORIGINS listesindeki muhtemel kopyaları temizle
