@@ -73,7 +73,7 @@ class WidgetLoaderView(View):
     
     // Frontend URL (embed sayfaları frontend'de)
     const backendUrl = "{base_url}";
-    const frontendUrl = "http://localhost:3000";  // Frontend URL'i
+    const frontendUrl = "https://sidrexgpt-test-frontend.onrender.com";  // Canlı Frontend URL'i
     
     // URL bazlı robot seçimi
     function selectRobotByUrl() {{
