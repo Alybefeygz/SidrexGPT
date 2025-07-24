@@ -4,7 +4,7 @@ import type React from "react"
 import { useState, useRef, useEffect } from "react"
 import ThirdRobotChatBox from "./ThirdRobotChatBox"
 import { useRobotChat } from "../../../hooks/use-api"
-import { useIsMobile } from "../../../hooks/use-mobile"
+import { useWidgetCommunication } from "../../../hooks/use-widget-communication"
 import { toast } from "sonner"
 
 interface ThirdRobotProps {
@@ -40,11 +40,19 @@ interface Message {
 }
 
 export default function ThirdRobot({ onChatToggle, isOtherChatOpen, isFloating = false }: ThirdRobotProps) {
-  // Mobile detection
-  const isMobile = useIsMobile()
   
-  // Chat state
+  // Chat state - SSR-safe localStorage persistence
   const [isChatOpen, setIsChatOpen] = useState(false)
+  const [isHydrated, setIsHydrated] = useState(false)
+
+  // Hydration sonrası localStorage'dan state'i yükle
+  useEffect(() => {
+    setIsHydrated(true)
+    if (typeof window !== 'undefined') {
+      const savedState = localStorage.getItem('markamind-chat-state') === 'open'
+      setIsChatOpen(savedState)
+    }
+  }, [])
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
@@ -67,6 +75,32 @@ export default function ThirdRobot({ onChatToggle, isOtherChatOpen, isFloating =
   // Robot Chat API integration
   const { sendMessage: sendChatMessage, loading: chatLoading } = useRobotChat('sidrexgpt-kids')
 
+  // Widget Communication Hook
+  const { notifyRobotClicked, notifyOpenChatbox, notifyCloseChatbox } = useWidgetCommunication()
+
+  // PostMessage listener - Parent'dan gelen komutları dinle
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data === 'forceOpenChatbox') {
+        console.log("📨 Received forceOpenChatbox from parent")
+        setIsChatOpen(true)
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('markamind-chat-state', 'open')
+        }
+      } else if (event.data === 'forceCloseChatbox') {
+        console.log("📨 Received forceCloseChatbox from parent")  
+        setIsChatOpen(false)
+        setIsHovered(false) // Robot uyku moduna geçsin
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('markamind-chat-state', 'closed')
+        }
+      }
+    }
+
+    window.addEventListener('message', handleMessage)
+    return () => window.removeEventListener('message', handleMessage)
+  }, [])
+
   // Animation state
   const buttonRef = useRef<HTMLButtonElement>(null)
   const [isHovered, setIsHovered] = useState(false)
@@ -75,55 +109,24 @@ export default function ThirdRobot({ onChatToggle, isOtherChatOpen, isFloating =
   useEffect(() => {
     if (isOtherChatOpen && isChatOpen) {
       setIsChatOpen(false)
-      setIsHovered(false)
+      setIsHovered(false) // Robot uyku moduna geçsin
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('markamind-chat-state', 'closed')
+      }
     }
   }, [isOtherChatOpen, isChatOpen])
 
-  // Calculate responsive dimensions for chatbox
-  const calculateChatboxDimensions = () => {
-    const screenWidth = window.innerWidth
-    let chatboxWidth = 384
-    let chatboxHeight = 480
-    
-    if (screenWidth < 500) {
-      const scale = screenWidth / 500
-      chatboxWidth = Math.max(280, 384 * scale)
-      chatboxHeight = Math.max(360, 480 * scale)
-    }
-    
-    return { chatboxWidth, chatboxHeight }
-  }
 
-  // Update chatbox position when mobile state changes while chat is open
+  // Update chatbox position when chat is open
   useEffect(() => {
     if (isChatOpen && !isFloating && buttonRef.current) {
-      if (isMobile) {
-        // Mobile: center chatbox on screen with 1px right offset
-        const rect = buttonRef.current.getBoundingClientRect()
-        const screenHeight = window.innerHeight
-        const screenWidth = window.innerWidth
-        
-        // Calculate responsive dimensions using centralized function
-        const { chatboxWidth, chatboxHeight } = calculateChatboxDimensions()
-        
-        const verticalCenter = screenHeight / 2
-        const horizontalCenter = screenWidth / 2
-        const chatboxTop = verticalCenter - (chatboxHeight / 2) - 140 // 140px higher (60px down from previous)
-        const chatboxLeft = horizontalCenter - (chatboxWidth / 2) + 1 // Center + 1px right offset
-        
-        setChatPosition({
-          top: chatboxTop - rect.top - window.scrollY,
-          left: chatboxLeft - rect.left - window.scrollX,
-        })
-      } else {
-        // Desktop: original position
-        setChatPosition({
-          top: -390,
-          left: -420,
-        })
-      }
+      // Desktop: chatbox robot'un solunda (aynı hizada)
+      setChatPosition({
+        top: -400, // Robot ile aynı hizada (chatbox height 500px - robot 96px farkı)
+        left: -420, // Robot'un solunda (chatbox width 400px + gap 20px)
+      })
     }
-  }, [isMobile, isChatOpen, isFloating])
+  }, [isChatOpen, isFloating])
 
   const sendMessage = async () => {
     if (inputValue.trim() === "" || chatLoading) return
@@ -194,37 +197,42 @@ export default function ThirdRobot({ onChatToggle, isOtherChatOpen, isFloating =
   }
 
   const toggleChat = () => {
-    if (!isChatOpen && buttonRef.current && !isFloating) {
-      // For iframe context, position chatbox relative to robot
-      if (isMobile) {
-        // Mobile: center chatbox on screen with 1px right offset
-        const rect = buttonRef.current.getBoundingClientRect()
-        const screenHeight = window.innerHeight
-        const screenWidth = window.innerWidth
-        
-        // Calculate responsive dimensions using centralized function
-        const { chatboxWidth, chatboxHeight } = calculateChatboxDimensions()
-        
-        const verticalCenter = screenHeight / 2
-        const horizontalCenter = screenWidth / 2
-        const chatboxTop = verticalCenter - (chatboxHeight / 2) - 140 // 140px higher (60px down from previous)
-        const chatboxLeft = horizontalCenter - (chatboxWidth / 2) + 1 // Center + 1px right offset
-        
+    if (!isChatOpen) {
+      // AÇILIŞ: State'i localStorage'a kaydet
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('markamind-chat-state', 'open')
+      }
+      
+      // Iframe büyütme sinyali gönder
+      notifyOpenChatbox()
+      
+      // Chatbox pozisyonunu ayarla (iframe olmayan durumlar için)
+      if (buttonRef.current && !isFloating) {
+        // Desktop: Chatbox robot'un solunda (aynı hizada)
         setChatPosition({
-          top: chatboxTop - rect.top - window.scrollY,
-          left: chatboxLeft - rect.left - window.scrollX,
-        })
-      } else {
-        // Desktop: original position
-        setChatPosition({
-          top: -390,
-          left: -420,
+          top: -400, // Robot ile aynı hizada (chatbox height 500px - robot 96px farkı)
+          left: -420, // Robot'un solunda (chatbox width 400px + gap 20px)
         })
       }
+      
+      // Chatbox'ı aç
+      setIsChatOpen(true)
+      onChatToggle("third", true)
+      
+    } else {
+      // KAPANIŞ: State'i localStorage'a kaydet
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('markamind-chat-state', 'closed')
+      }
+      
+      // Chatbox'ı kapat
+      setIsChatOpen(false)
+      setIsHovered(false) // Robot uyku moduna geçsin
+      onChatToggle("third", false)
+      
+      // İframe küçültme sinyali gönder
+      notifyCloseChatbox()
     }
-    const newChatState = !isChatOpen
-    setIsChatOpen(newChatState)
-    onChatToggle("third", newChatState)
   }
 
   return (
@@ -238,10 +246,12 @@ export default function ThirdRobot({ onChatToggle, isOtherChatOpen, isFloating =
             setIsHovered(false)
           }
         }}
-        className={`w-24 h-24 rounded-full shadow-2xl hover:shadow-xl transition-all duration-300 transform hover:scale-105 cursor-pointer flex items-center justify-center relative overflow-visible ${
-          isChatOpen || isHovered ? "third-robot-active" : ""
+        className={`rounded-full shadow-2xl hover:shadow-xl transition-all duration-300 transform hover:scale-105 cursor-pointer flex items-center justify-center relative overflow-visible ${
+          (isChatOpen || isHovered) ? "third-robot-active" : ""
         }`}
         style={{
+          width: '96px',  // Sabit boyut - w-24 = 96px
+          height: '96px', // Sabit boyut - h-24 = 96px
           backgroundColor: "#FEFBEF",
           border: "2px solid #FFC429",
         }}
@@ -304,7 +314,14 @@ export default function ThirdRobot({ onChatToggle, isOtherChatOpen, isFloating =
           handleKeyPress={handleKeyPress}
           onClose={() => {
             setIsChatOpen(false)
-            setIsHovered(false)
+            setIsHovered(false) // Robot uyku moduna geçsin
+            // localStorage'a da kaydet
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('markamind-chat-state', 'closed')
+            }
+            // Chatbox kapandığında parent'a bildir (sadece X butonundan)
+            notifyCloseChatbox()
+            onChatToggle("third", false)
           }}
           position={chatPosition}
           isFloating={isFloating}

@@ -1,25 +1,36 @@
 "use client"
 
 import ThirdRobot from "@/components/robots/third-robot/ThirdRobot"
+import { useWidgetCommunication } from "@/hooks/use-widget-communication"
 
 export default function EmbedThirdRobot() {
+  // Widget iletişim hook'u - mevcut fonksiyonları bozmadan ekler
+  const { notifyParent, notifyRobotClicked, notifyOpenChatbox, notifyCloseChatbox } = useWidgetCommunication({
+    onOpen: () => console.log('Third Robot Widget opened'),
+    onClose: () => console.log('Third Robot Widget closed'),
+    enableParentCommunication: true
+  })
+
   const handleChatToggle = (robotId: string, isOpen: boolean) => {
     // Embed modunda diğer robotlar yok, bu yüzden boş
+    // Yeni özellik: Parent'a durum bildir
+    if (isOpen) {
+      notifyParent('ready')
+      notifyOpenChatbox() // Chatbox açıldı
+    } else {
+      notifyCloseChatbox() // Chatbox kapandı
+    }
+  }
+
+  // Robot tıklama handler'ı
+  const handleRobotClick = () => {
+    notifyRobotClicked() // Robot'a tıklandı, iframe büyütülecek
   }
 
   return (
     <>
-      {/* Desktop: Sağ alt köşede */}
-      <div className="hidden sm:block fixed bottom-4 right-4 z-[9999] pointer-events-auto">
-        <ThirdRobot
-          onChatToggle={handleChatToggle}
-          isOtherChatOpen={false}
-          isFloating={true}
-        />
-      </div>
-      
-      {/* Mobile: Sağ alt köşede ama daha küçük */}
-      <div className="sm:hidden fixed bottom-2 right-2 z-[9999] pointer-events-auto transform scale-75">
+      {/* Robot Sağ Alt Köşede - Tek Pozisyon */}
+      <div className="fixed bottom-4 right-4 z-[9999] pointer-events-auto" onClick={handleRobotClick}>
         <ThirdRobot
           onChatToggle={handleChatToggle}
           isOtherChatOpen={false}
@@ -27,42 +38,50 @@ export default function EmbedThirdRobot() {
         />
       </div>
 
-      {/* Mobile Responsive Styles */}
+      {/* Chatbox Positioning Styles + Transparency Fix */}
       <style jsx global>{`
-        @media (max-width: 640px) {
-          /* Robot boyutunu küçült */
-          .fixed.bottom-2.right-2 button {
-            width: 60px !important;
-            height: 60px !important;
-          }
-          
-          /* Chatbox mobilde robot üstüne taşın */
-          .fixed.bottom-2.right-2 [class*="absolute"] {
+        /* Immediate transparent background - no flash */
+        html, body {
+          background-color: transparent !important;
+          background: transparent !important;
+        }
+        
+        /* Override any potential Tailwind background classes */
+        body {
+          background-color: transparent !important;
+        }
+        
+        .markamind-chatbox {
+          position: fixed !important;
+          bottom: 20px !important; /* Robot ile aynı hizada */
+          right: 136px !important; /* Robot'un solunda (robot 96px + margin 16px + gap 24px) */
+          left: unset !important;
+          width: 400px !important;
+          height: 500px !important;
+        }
+        
+        /* Mobil ölçülerde chatbox robot üstünde açılsın */
+        @media (max-width: 769px) {
+          .markamind-chatbox {
             position: fixed !important;
-            bottom: 80px !important;
-            right: 10px !important;
-            left: 10px !important;
-            width: calc(100vw - 20px) !important;
-            max-width: 350px !important;
-            height: 400px !important;
+            bottom: 180px !important; /* Robot üstünde + 80px yukarı */
+            right: 16px !important; /* Ekranın sağına yapışık */
+            left: unset !important; /* Sol margin kaldır */
+            width: 350px !important; /* Sabit genişlik */
+            max-width: calc(100vw - 32px) !important; /* Ekranı taşmaması için */
+            height: 400px !important; /* Mobilde daha küçük yükseklik */
+            margin: 0 !important; /* Margin kaldır */
           }
-          
-          /* Chatbox padding'ini küçült */
-          .fixed.bottom-2.right-2 [class*="p-5"] {
-            padding: 12px !important;
-          }
-          
-          /* Input area'yı küçült */
-          .fixed.bottom-2.right-2 input {
-            padding: 8px 12px !important;
-            font-size: 14px !important;
-          }
-          
-          /* Send button'u küçült */
-          .fixed.bottom-2.right-2 button[class*="w-12"] {
-            width: 40px !important;
-            height: 40px !important;
-          }
+        }
+        
+        /* Ensure robot components maintain their styling */
+        .robot-mascot-container {
+          background: transparent !important;
+        }
+        
+        /* Preserve robot head colors while keeping background transparent */
+        .robot-head-third {
+          background-color: #ffc429 !important;
         }
       `}</style>
     </>

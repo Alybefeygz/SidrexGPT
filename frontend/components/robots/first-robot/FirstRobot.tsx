@@ -5,6 +5,7 @@ import { useState, useRef, useEffect } from "react"
 import FirstRobotChatBox from "./FirstRobotChatBox"
 import { useRobotChat } from "../../../hooks/use-api"
 import { useIsMobile } from "../../../hooks/use-mobile"
+import { useWidgetCommunication } from "../../../hooks/use-widget-communication"
 import { toast } from "sonner"
 
 interface FirstRobotProps {
@@ -73,6 +74,9 @@ export default function FirstRobot({ onChatToggle, isOtherChatOpen, isFloating =
 
   // Robot Chat API integration
   const { sendMessage: sendChatMessage, loading: chatLoading } = useRobotChat('ana-robot')
+
+  // Widget Communication Hook
+  const { notifyRobotClicked, notifyOpenChatbox, notifyCloseChatbox } = useWidgetCommunication()
 
   // Animation state
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
@@ -237,35 +241,49 @@ export default function FirstRobot({ onChatToggle, isOtherChatOpen, isFloating =
   }
 
   const toggleChat = () => {
-    if (!isChatOpen && buttonRef.current && !isFloating) {
-      // For iframe context, position chatbox relative to robot
-      if (isMobile) {
-        // Mobile: center chatbox on screen with 1px right offset
-        const rect = buttonRef.current.getBoundingClientRect()
-        const screenHeight = window.innerHeight
-        const screenWidth = window.innerWidth
-        
-        // Calculate responsive dimensions using centralized function
-        const { width: chatboxWidth, height: chatboxHeight } = calculateChatboxDimensions()
-        
-        const verticalCenter = screenHeight / 2
-        const horizontalCenter = screenWidth / 2
-        const chatboxTop = verticalCenter - (chatboxHeight / 2) - 140 // 140px higher (60px down from previous)
-        const chatboxLeft = horizontalCenter - (chatboxWidth / 2) + 1 // Center + 1px right offset
-        
-        setChatPosition({
-          top: chatboxTop - rect.top - window.scrollY,
-          left: chatboxLeft - rect.left - window.scrollX,
-        })
-      } else {
-        // Desktop: original position
-        setChatPosition({
-          top: -390,
-          left: -420,
-        })
-      }
-    }
     const newChatState = !isChatOpen
+    
+    // İlk robot tıklanması - widget communication başlat
+    if (!isChatOpen) {
+      // Robot tıklandı bildirimi gönder
+      notifyRobotClicked()
+      
+      if (buttonRef.current && !isFloating) {
+        // For iframe context, position chatbox relative to robot
+        if (isMobile) {
+          // Mobile: center chatbox on screen with 1px right offset
+          const rect = buttonRef.current.getBoundingClientRect()
+          const screenHeight = window.innerHeight
+          const screenWidth = window.innerWidth
+          
+          // Calculate responsive dimensions using centralized function
+          const { width: chatboxWidth, height: chatboxHeight } = calculateChatboxDimensions()
+          
+          const verticalCenter = screenHeight / 2
+          const horizontalCenter = screenWidth / 2
+          const chatboxTop = verticalCenter - (chatboxHeight / 2) - 140 // 140px higher (60px down from previous)
+          const chatboxLeft = horizontalCenter - (chatboxWidth / 2) + 1 // Center + 1px right offset
+          
+          setChatPosition({
+            top: chatboxTop - rect.top - window.scrollY,
+            left: chatboxLeft - rect.left - window.scrollX,
+          })
+        } else {
+          // Desktop: original position
+          setChatPosition({
+            top: -390,
+            left: -420,
+          })
+        }
+      }
+      
+      // Chatbox açılma bildirimi gönder
+      notifyOpenChatbox()
+    } else {
+      // Chatbox kapatılıyor - kapatma bildirimi gönder
+      notifyCloseChatbox()
+    }
+    
     setIsChatOpen(newChatState)
     onChatToggle("first", newChatState)
   }
@@ -326,7 +344,12 @@ export default function FirstRobot({ onChatToggle, isOtherChatOpen, isFloating =
           setInputValue={setInputValue}
           sendMessage={sendMessage}
           handleKeyPress={handleKeyPress}
-          onClose={() => setIsChatOpen(false)}
+          onClose={() => {
+            setIsChatOpen(false)
+            // Chatbox kapandığında parent'a bildir
+            notifyCloseChatbox()
+            onChatToggle("first", false)
+          }}
           position={chatPosition}
           dimensions={calculateChatboxDimensions()}
           isFloating={isFloating}

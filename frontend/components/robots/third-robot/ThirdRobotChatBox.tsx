@@ -4,7 +4,6 @@ import type React from "react"
 import { useRef, useEffect, useState } from "react"
 import { Send } from "lucide-react"
 import ReactMarkdown from 'react-markdown'
-import { useIsMobile } from "../../../hooks/use-mobile"
 
 interface Message {
   id: number
@@ -38,33 +37,9 @@ export default function ThirdRobotChatBox({
   isLoading = false,
 }: ThirdRobotChatBoxProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const isMobile = useIsMobile()
   
-  // Calculate responsive dimensions
-  const [dimensions, setDimensions] = useState({ width: 384, height: 480 })
-  
-  useEffect(() => {
-    const updateDimensions = () => {
-      const screenWidth = window.innerWidth
-      
-      if (screenWidth < 500) {
-        // Scale down proportionally for screens under 500px
-        const scale = screenWidth / 500
-        setDimensions({
-          width: Math.max(280, 384 * scale), // Minimum 280px width
-          height: Math.max(360, 480 * scale), // Minimum 360px height
-        })
-      } else {
-        // Default dimensions for screens 500px and above
-        setDimensions({ width: 384, height: 480 })
-      }
-    }
-    
-    updateDimensions()
-    window.addEventListener('resize', updateDimensions)
-    
-    return () => window.removeEventListener('resize', updateDimensions)
-  }, [])
+  // Fixed dimensions - no responsive behavior
+  const dimensions = { width: 384, height: 480 }
 
   // Auto-scroll to bottom when new messages arrive - only scroll within chatbox container
   useEffect(() => {
@@ -78,7 +53,7 @@ export default function ThirdRobotChatBox({
 
   return (
     <div
-      className={`z-50 bg-white rounded-lg shadow-xl border border-gray-200 flex flex-col animate-in slide-in-from-bottom-2 duration-300 ${
+      className={`markamind-chatbox z-50 bg-white rounded-lg shadow-xl border border-gray-200 flex flex-col animate-in slide-in-from-bottom-2 duration-300 ${
         isFloating ? "fixed bottom-4 right-32" : "absolute"
       }`}
       style={
@@ -123,19 +98,20 @@ export default function ThirdRobotChatBox({
                     <span className="animate-bounce" style={{ animationDelay: "0.4s" }}>.</span>
                   </p>
                 ) : (
-                  <p className="text-sm">
+                  <div className="text-sm">
                     {message.isUser ? (
-                      message.text
+                      <p>{message.text}</p>
                     ) : (
                       <ReactMarkdown
                         components={{
                           strong: ({ node, ...props }) => <span className="font-bold" {...props} />,
+                          p: ({ node, ...props }) => <p className="mb-2" {...props} />,
                         }}
                       >
                         {message.text}
                       </ReactMarkdown>
                     )}
-                  </p>
+                  </div>
                 )}
               </div>
             </div>

@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect, useCallback, memo } from "react"
 import { toast } from "sonner"
 import { useRobotChat } from "@/hooks/use-api"
 import { useIsMobile } from "@/hooks/use-mobile"
+import { useWidgetCommunication } from "@/hooks/use-widget-communication"
 import SecondRobotChatBox from "./SecondRobotChatBox"
 
 interface SecondRobotProps {
@@ -70,6 +71,9 @@ const SecondRobot = memo(function SecondRobot({ onChatToggle, isOtherChatOpen, i
 
   // Robot Chat API integration
   const { sendMessage: sendChatMessage, loading: chatLoading } = useRobotChat('sidrexgpt-mag')
+
+  // Widget Communication Hook
+  const { notifyRobotClicked, notifyOpenChatbox, notifyCloseChatbox } = useWidgetCommunication()
 
   // ⚡ PERFORMANS: Memoized callbacks
   const handleChatToggle = useCallback((robotId: string, isOpen: boolean) => {
@@ -207,38 +211,52 @@ const SecondRobot = memo(function SecondRobot({ onChatToggle, isOtherChatOpen, i
 
   // ⚡ PERFORMANS: Memoized toggleChat
   const toggleChat = useCallback(() => {
-    if (!isChatOpen && buttonRef.current && !isFloating) {
-      // For iframe context, position chatbox relative to robot
-      if (isMobile) {
-        // Mobile: center chatbox on screen with 1px right offset
-        const rect = buttonRef.current.getBoundingClientRect()
-        const screenHeight = window.innerHeight
-        const screenWidth = window.innerWidth
-        
-        // Calculate responsive dimensions using centralized function
-        const { chatboxWidth, chatboxHeight } = calculateChatboxDimensions()
-        
-        const verticalCenter = screenHeight / 2
-        const horizontalCenter = screenWidth / 2
-        const chatboxTop = verticalCenter - (chatboxHeight / 2) - 140 // 140px higher (60px down from previous)
-        const chatboxLeft = horizontalCenter - (chatboxWidth / 2) + 1 // Center + 1px right offset
-        
-        setChatPosition({
-          top: chatboxTop - rect.top - window.scrollY,
-          left: chatboxLeft - rect.left - window.scrollX,
-        })
-      } else {
-        // Desktop: original position
-        setChatPosition({
-          top: -390,
-          left: -420,
-        })
-      }
-    }
     const newChatState = !isChatOpen
+    
+    // İlk robot tıklanması - widget communication başlat
+    if (!isChatOpen) {
+      // Robot tıklandı bildirimi gönder
+      notifyRobotClicked()
+      
+      if (buttonRef.current && !isFloating) {
+        // For iframe context, position chatbox relative to robot
+        if (isMobile) {
+          // Mobile: center chatbox on screen with 1px right offset
+          const rect = buttonRef.current.getBoundingClientRect()
+          const screenHeight = window.innerHeight
+          const screenWidth = window.innerWidth
+          
+          // Calculate responsive dimensions using centralized function
+          const { chatboxWidth, chatboxHeight } = calculateChatboxDimensions()
+          
+          const verticalCenter = screenHeight / 2
+          const horizontalCenter = screenWidth / 2
+          const chatboxTop = verticalCenter - (chatboxHeight / 2) - 140 // 140px higher (60px down from previous)
+          const chatboxLeft = horizontalCenter - (chatboxWidth / 2) + 1 // Center + 1px right offset
+          
+          setChatPosition({
+            top: chatboxTop - rect.top - window.scrollY,
+            left: chatboxLeft - rect.left - window.scrollX,
+          })
+        } else {
+          // Desktop: original position
+          setChatPosition({
+            top: -390,
+            left: -420,
+          })
+        }
+      }
+      
+      // Chatbox açılma bildirimi gönder
+      notifyOpenChatbox()
+    } else {
+      // Chatbox kapatılıyor - kapatma bildirimi gönder
+      notifyCloseChatbox()
+    }
+    
     setIsChatOpen(newChatState)
     handleChatToggle("second", newChatState)
-  }, [isChatOpen, isFloating, handleChatToggle, isMobile])
+  }, [isChatOpen, isFloating, handleChatToggle, isMobile, notifyRobotClicked, notifyOpenChatbox, notifyCloseChatbox])
 
   return (
     <div className="relative">
@@ -299,6 +317,9 @@ const SecondRobot = memo(function SecondRobot({ onChatToggle, isOtherChatOpen, i
           onClose={() => {
             setIsChatOpen(false)
             setIsHovered(false)
+            // Chatbox kapandığında parent'a bildir
+            notifyCloseChatbox()
+            handleChatToggle("second", false)
           }}
           position={chatPosition}
           isFloating={isFloating}

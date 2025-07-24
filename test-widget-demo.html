@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MarkaMind Widget Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        
+        .demo-section {
+            margin: 30px 0;
+            padding: 20px;
+            border: 2px solid #007bff;
+            border-radius: 8px;
+            position: relative;
+        }
+        
+        .demo-section h3 {
+            margin: 0 0 15px 0;
+            color: #007bff;
+        }
+        
+        .demo-iframe {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .code-block {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+            overflow-x: auto;
+        }
+        
+        .status-box {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 MarkaMind Widget Demo</h1>
+        <p>Bu sayfa farklı URL'leri simüle ederek widget sistemini test eder.</p>
+
+        <div class="demo-section">
+            <h3>🧒 Kids Product - Third Robot</h3>
+            <p><strong>URL:</strong> https://sidrex.com/imuntus-kids-cocuklar-icin-takviye-edici-gida</p>
+            <div class="status-box">
+                Beklenen: <strong>Third Robot</strong> (Sarı renk)
+            </div>
+            <iframe class="demo-iframe" 
+                    src="data:text/html;charset=utf-8,%3C!DOCTYPE%20html%3E%0A%3Chtml%3E%0A%3Chead%3E%0A%3Cmeta%20charset%3D%22UTF-8%22%3E%0A%3Cmeta%20name%3D%22viewport%22%20content%3D%22width%3Ddevice-width%2C%20initial-scale%3D1.0%22%3E%0A%3Ctitle%3EKids%20Product%20Page%3C%2Ftitle%3E%0A%3Cstyle%3E%0Abody%20%7B%20font-family%3A%20Arial%2C%20sans-serif%3B%20padding%3A%2020px%3B%20background%3A%20%23f0f8ff%3B%20%7D%0A.product%20%7B%20background%3A%20white%3B%20padding%3A%2020px%3B%20border-radius%3A%208px%3B%20%7D%0A%3C%2Fstyle%3E%0A%3C%2Fhead%3E%0A%3Cbody%3E%0A%3Cdiv%20class%3D%22product%22%3E%0A%3Ch1%3EImuntus%20Kids%20-%20Çocuklar%20İçin%20Takviye%20Edici%20Gıda%3C%2Fh1%3E%0A%3Cp%3EÇocuklarınızın%20bağışıklık%20sistemini%20destekleyen%20doğal%20takviye...%3C%2Fp%3E%0A%3C%2Fdiv%3E%0A%0A%3Cscript%3E%0A%2F%2F%20URL'yi%20simüle%20et%0Awindow.history.replaceState%28%7B%7D%2C%20%27%27%2C%20%27https%3A%2F%2Fsidrex.com%2Fimuntus-kids-cocuklar-icin-takviye-edici-gida%27%29%3B%0A%0Awindow.MarkaMindConfig%20%3D%20%7B%0A%20%20robotId%3A%20%22auto%22%2C%0A%20%20position%3A%20%22right%22%2C%0A%20%20width%3A%20%2280px%22%2C%0A%20%20height%3A%20%2280px%22%0A%7D%3B%0A%3C%2Fscript%3E%0A%3Cscript%20src%3D%22http%3A%2F%2Flocalhost%3A8000%2Fapi%2Fwidget-loader%22%3E%3C%2Fscript%3E%0A%3C%2Fbody%3E%0A%3C%2Fhtml%3E"></iframe>
+        </div>
+
+        <div class="demo-section">
+            <h3>💊 Mag4ever Product - Second Robot</h3>
+            <p><strong>URL:</strong> https://sidrex.com/mag4ever</p>
+            <div class="status-box">
+                Beklenen: <strong>Second Robot</strong> (Mor renk)
+            </div>
+            <iframe class="demo-iframe" 
+                    src="data:text/html;charset=utf-8,%3C!DOCTYPE%20html%3E%0A%3Chtml%3E%0A%3Chead%3E%0A%3Cmeta%20charset%3D%22UTF-8%22%3E%0A%3Cmeta%20name%3D%22viewport%22%20content%3D%22width%3Ddevice-width%2C%20initial-scale%3D1.0%22%3E%0A%3Ctitle%3EMag4ever%20Product%20Page%3C%2Ftitle%3E%0A%3Cstyle%3E%0Abody%20%7B%20font-family%3A%20Arial%2C%20sans-serif%3B%20padding%3A%2020px%3B%20background%3A%20%23f5f3ff%3B%20%7D%0A.product%20%7B%20background%3A%20white%3B%20padding%3A%2020px%3B%20border-radius%3A%208px%3B%20%7D%0A%3C%2Fstyle%3E%0A%3C%2Fhead%3E%0A%3Cbody%3E%0A%3Cdiv%20class%3D%22product%22%3E%0A%3Ch1%3EMag4ever%20-%20Magnezyum%20Desteği%3C%2Fh1%3E%0A%3Cp%3EYorgunluğu%20geride%20bırakın%2C%20enerjinizi%20geri%20kazanın...%3C%2Fp%3E%0A%3C%2Fdiv%3E%0A%0A%3Cscript%3E%0A%2F%2F%20URL'yi%20simüle%20et%0Awindow.history.replaceState%28%7B%7D%2C%20%27%27%2C%20%27https%3A%2F%2Fsidrex.com%2Fmag4ever%27%29%3B%0A%0Awindow.MarkaMindConfig%20%3D%20%7B%0A%20%20robotId%3A%20%22auto%22%2C%0A%20%20position%3A%20%22right%22%2C%0A%20%20width%3A%20%2280px%22%2C%0A%20%20height%3A%20%2280px%22%0A%7D%3B%0A%3C%2Fscript%3E%0A%3Cscript%20src%3D%22http%3A%2F%2Flocalhost%3A8000%2Fapi%2Fwidget-loader%22%3E%3C%2Fscript%3E%0A%3C%2Fbody%3E%0A%3C%2Fhtml%3E"></iframe>
+        </div>
+
+        <div class="demo-section">
+            <h3>🚫 Other Product - No Widget</h3>
+            <p><strong>URL:</strong> https://sidrex.com/other-product</p>
+            <div class="status-box">
+                Beklenen: <strong>Widget Yok</strong>
+            </div>
+            <iframe class="demo-iframe" 
+                    src="data:text/html;charset=utf-8,%3C!DOCTYPE%20html%3E%0A%3Chtml%3E%0A%3Chead%3E%0A%3Cmeta%20charset%3D%22UTF-8%22%3E%0A%3Cmeta%20name%3D%22viewport%22%20content%3D%22width%3Ddevice-width%2C%20initial-scale%3D1.0%22%3E%0A%3Ctitle%3EOther%20Product%20Page%3C%2Ftitle%3E%0A%3Cstyle%3E%0Abody%20%7B%20font-family%3A%20Arial%2C%20sans-serif%3B%20padding%3A%2020px%3B%20background%3A%20%23f9f9f9%3B%20%7D%0A.product%20%7B%20background%3A%20white%3B%20padding%3A%2020px%3B%20border-radius%3A%208px%3B%20%7D%0A%3C%2Fstyle%3E%0A%3C%2Fhead%3E%0A%3Cbody%3E%0A%3Cdiv%20class%3D%22product%22%3E%0A%3Ch1%3EDiğer%20Ürün%3C%2Fh1%3E%0A%3Cp%3EBu%20ürün%20için%20widget%20tanımlanmamış...%3C%2Fp%3E%0A%3C%2Fdiv%3E%0A%0A%3Cscript%3E%0A%2F%2F%20URL'yi%20simüle%20et%0Awindow.history.replaceState%28%7B%7D%2C%20%27%27%2C%20%27https%3A%2F%2Fsidrex.com%2Fother-product%27%29%3B%0A%0Awindow.MarkaMindConfig%20%3D%20%7B%0A%20%20robotId%3A%20%22auto%22%2C%0A%20%20position%3A%20%22right%22%2C%0A%20%20width%3A%20%2280px%22%2C%0A%20%20height%3A%20%2280px%22%0A%7D%3B%0A%3C%2Fscript%3E%0A%3Cscript%20src%3D%22http%3A%2F%2Flocalhost%3A8000%2Fapi%2Fwidget-loader%22%3E%3C%2Fscript%3E%0A%3C%2Fbody%3E%0A%3C%2Fhtml%3E"></iframe>
+        </div>
+
+        <div class="demo-section" style="background: #fff3cd;">
+            <h3>📋 Sidrex.com için Hazır Kod</h3>
+            <p>Bu kodu sidrex.com'un tüm sayfalarına ekleyin:</p>
+            <div class="code-block">
+&lt;!-- MarkaMind Smart Widget --&gt;
+&lt;script&gt;
+  window.MarkaMindConfig = {
+    robotId: "auto", // URL'ye göre otomatik seç
+    position: "right",
+    width: "80px",
+    height: "80px"
+  };
+&lt;/script&gt;
+&lt;script src="http://localhost:8000/api/widget-loader"&gt;&lt;/script&gt;
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MarkaMind Widget Test Sayfası</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+        }
+        
+        .code-block {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+            overflow-x: auto;
+        }
+        
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        
+        .test-button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 MarkaMind Widget Test Sayfası</h1>
+            <p>Bu sayfa, yeni widget sisteminin çalışıp çalışmadığını test etmek için oluşturulmuştur.</p>
+        </div>
+
+        <div class="test-section">
+            <h2>📝 Test Adımları</h2>
+            <ol>
+                <li><strong>Backend'i başlatın:</strong> <code>python manage.py runserver</code></li>
+                <li><strong>Frontend'i başlatın:</strong> <code>npm run dev</code></li>
+                <li><strong>Bu sayfayı açın:</strong> Browser'da test edin</li>
+                <li><strong>Widget'ı kontrol edin:</strong> Sağ alt köşede robot görünmeli</li>
+            </ol>
+        </div>
+
+        <div class="test-section">
+            <h2>🔧 Aktif Widget Konfigürasyonu (Second Robot)</h2>
+            <div class="code-block">
+&lt;script&gt;
+  window.MarkaMindConfig = {
+    robotId: 'second-robot',
+    position: 'right',
+    width: '60px',
+    height: '60px'
+  };
+&lt;/script&gt;
+&lt;script src="http://localhost:8000/api/widget-loader">&lt;/script&gt;
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>🧪 Test Butonları</h2>
+            <button class="test-button" onclick="testWidgetLoader()">Widget Loader Test</button>
+            <button class="test-button" onclick="testPostMessage()">PostMessage Test</button>
+            <button class="test-button" onclick="testMobileView()">Mobil Görünüm Test</button>
+            <button class="test-button" onclick="testDifferentRobot()">Farklı Robot Test</button>
+            
+            <div id="test-results"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>📊 Sistem Durumu</h2>
+            <div id="system-status">
+                <div class="status warning">⏳ Test edilmeyi bekliyor...</div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>📚 Kullanım Örnekleri</h2>
+            
+            <h3>Temel Kullanım (Second Robot):</h3>
+            <div class="code-block">
+&lt;script&gt;
+  window.MarkaMindConfig = {
+    robotId: 'second-robot'
+  };
+&lt;/script&gt;
+&lt;script src="http://localhost:8000/api/widget-loader">&lt;/script&gt;
+            </div>
+
+            <h3>Gelişmiş Konfigürasyon (Second Robot):</h3>
+            <div class="code-block">
+&lt;script&gt;
+  window.MarkaMindConfig = {
+    robotId: 'second-robot',
+    position: 'left',
+    width: '70px',
+    height: '70px',
+    borderRadius: '15px'
+  };
+&lt;/script&gt;
+&lt;script src="http://localhost:8000/api/widget-loader">&lt;/script&gt;
+            </div>
+
+            <h3>Özel Marka (Second Robot):</h3>
+            <div class="code-block">
+&lt;script&gt;
+  window.MarkaMindConfig = {
+    robotId: 'second-robot',
+    brandId: 'sidrex',
+    position: 'right'
+  };
+&lt;/script&gt;
+&lt;script src="http://localhost:8000/api/widget-loader">&lt;/script&gt;
+            </div>
+        </div>
+    </div>
+
+    <!-- MarkaMind Widget - TEST -->
+    <script>
+        window.MarkaMindConfig = {
+            robotId: 'second-robot',
+            position: 'right',
+            width: '250px',
+            height: '250px'
+        };
+        
+        // Test fonksiyonları
+        function testWidgetLoader() {
+            const results = document.getElementById('test-results');
+            results.innerHTML = '<div class="status warning">⏳ Widget loader testi yapılıyor...</div>';
+            
+            fetch('http://localhost:8000/api/widget-loader')
+                .then(response => {
+                    if (response.ok) {
+                        results.innerHTML = '<div class="status success">✅ Widget loader başarıyla yüklendi!</div>';
+                        updateSystemStatus('success', 'Widget loader çalışıyor');
+                    } else {
+                        throw new Error('Widget loader hatası');
+                    }
+                })
+                .catch(error => {
+                    results.innerHTML = '<div class="status error">❌ Widget loader hatası: ' + error.message + '</div>';
+                    updateSystemStatus('error', 'Widget loader çalışmıyor');
+                });
+        }
+        
+        function testPostMessage() {
+            const results = document.getElementById('test-results');
+            results.innerHTML = '<div class="status warning">⏳ PostMessage testi yapılıyor...</div>';
+            
+            // PostMessage test et
+            if (window.postMessage) {
+                results.innerHTML = '<div class="status success">✅ PostMessage desteği mevcut!</div>';
+            } else {
+                results.innerHTML = '<div class="status error">❌ PostMessage desteği yok!</div>';
+            }
+        }
+        
+        function testMobileView() {
+            const results = document.getElementById('test-results');
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            
+            if (isMobile) {
+                results.innerHTML = '<div class="status success">📱 Mobil cihaz tespit edildi!</div>';
+            } else {
+                results.innerHTML = '<div class="status warning">🖥️ Desktop cihaz tespit edildi (mobil test için mobil cihaz kullanın)</div>';
+            }
+        }
+        
+        function testDifferentRobot() {
+            const results = document.getElementById('test-results');
+            results.innerHTML = '<div class="status warning">⏳ First robot testi için sayfa yenileniyor...</div>';
+            
+            // First robot ile test
+            window.MarkaMindConfig.robotId = 'first-robot';
+            setTimeout(() => {
+                location.reload();
+            }, 1000);
+        }
+        
+        function updateSystemStatus(type, message) {
+            const status = document.getElementById('system-status');
+            const className = type === 'success' ? 'success' : type === 'error' ? 'error' : 'warning';
+            const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : '⚠️';
+            
+            status.innerHTML = `<div class="status ${className}">${icon} ${message}</div>`;
+        }
+        
+        // Sayfa yüklendiğinde otomatik test - 3 saniye gecikme (iframe 2 saniye + 1 saniye buffer)
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                if (document.getElementById('markamind-widget-iframe')) {
+                    updateSystemStatus('success', 'Widget başarıyla yüklendi (2 saniye gecikme ile)!');
+                } else {
+                    updateSystemStatus('error', 'Widget yüklenemedi!');
+                }
+            }, 3000);
+        });
+    </script>
+    <script src="http://localhost:8000/api/widget-loader"></script>
+</body>
+</html>

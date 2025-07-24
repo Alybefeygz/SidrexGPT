@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MarkaMind Smart Widget Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+        }
+        
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .test-button:hover {
+            background: #0056b3;
+        }
+        
+        .url-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        
+        .code-block {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 MarkaMind Smart Widget Test</h1>
+        <p>Bu test sayfası URL bazlı robot seçimini test eder.</p>
+
+        <div class="test-section">
+            <h2>📋 URL Mapping Kuralları</h2>
+            <ul>
+                <li><strong>Third Robot:</strong> URL'de <code>imuntus-kids</code> veya <code>cocuklar-icin</code> varsa</li>
+                <li><strong>Second Robot:</strong> URL'de <code>mag4ever</code> varsa</li>
+                <li><strong>Widget Yok:</strong> Yukarıdaki kurallar uymazsa widget gösterilmez</li>
+            </ul>
+        </div>
+
+        <div class="test-section">
+            <h2>🧪 Test URL'leri</h2>
+            <p>Bu butonlara tıklayarak farklı URL'leri simüle edebilirsiniz:</p>
+            
+            <button class="test-button" onclick="simulateUrl('https://sidrex.com/imuntus-kids-cocuklar-icin-takviye-edici-gida')">
+                Third Robot Test (Kids)
+            </button>
+            
+            <button class="test-button" onclick="simulateUrl('https://sidrex.com/mag4ever')">
+                Second Robot Test (Mag4ever)
+            </button>
+            
+            <button class="test-button" onclick="simulateUrl('https://sidrex.com/other-product')">
+                No Widget Test (Other)
+            </button>
+            
+            <div id="current-url" style="margin-top: 10px;"></div>
+            <div id="widget-status" style="margin-top: 10px;"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>🔧 Manuel URL Testi</h2>
+            <input type="text" id="manual-url" class="url-input" 
+                   placeholder="Test etmek istediğiniz URL'yi girin..."
+                   value="https://sidrex.com/imuntus-kids-cocuklar-icin-takviye-edici-gida">
+            <button class="test-button" onclick="testManualUrl()">Test Et</button>
+        </div>
+
+        <div class="test-section">
+            <h2>📜 Kullanım Kodu</h2>
+            <p>Sidrex.com sitesine eklenecek tek script:</p>
+            <div class="code-block">
+&lt;!-- MarkaMind Smart Widget --&gt;
+&lt;script&gt;
+  window.MarkaMindConfig = {
+    robotId: "auto", // URL'ye göre otomatik seç
+    position: "right",
+    width: "60px",
+    height: "60px"
+  };
+&lt;/script&gt;
+&lt;script src="http://localhost:8000/api/widget-loader"&gt;&lt;/script&gt;
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Widget sistemini test etmek için URL simülasyonu
+        function simulateUrl(url) {
+            document.getElementById('current-url').innerHTML = `<strong>Simulated URL:</strong> ${url}`;
+            
+            // URL'yi gerçekten değiştir (test için)
+            window.location.href = url;
+        }
+        
+        function testManualUrl() {
+            const url = document.getElementById('manual-url').value;
+            simulateUrl(url);
+        }
+        
+        function reinitializeWidget() {
+            // Mevcut widget'ı kaldır
+            const existingIframe = document.getElementById('markamind-widget-iframe');
+            if (existingIframe) {
+                existingIframe.remove();
+            }
+            
+            // Widget'ı yeniden başlat
+            if (window.MarkaMindWidget) {
+                window.MarkaMindWidget.init(window.MarkaMindConfig);
+            }
+            
+            // Status güncelle
+            setTimeout(() => {
+                const iframe = document.getElementById('markamind-widget-iframe');
+                const status = document.getElementById('widget-status');
+                
+                if (iframe) {
+                    const robotId = iframe.src.split('/embed/')[1];
+                    status.innerHTML = `<strong style="color: green;">✅ Widget Yüklendi:</strong> ${robotId}`;
+                } else {
+                    status.innerHTML = `<strong style="color: orange;">⚠️ Widget Yüklenmedi:</strong> Bu URL için robot tanımlanmamış`;
+                }
+            }, 1000);
+        }
+        
+        // Sayfa yüklendiğinde mevcut URL'yi göster
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('current-url').innerHTML = `<strong>Current URL:</strong> ${window.location.href}`;
+            
+            // 3 saniye sonra widget durumunu kontrol et
+            setTimeout(() => {
+                const iframe = document.getElementById('markamind-widget-iframe');
+                const status = document.getElementById('widget-status');
+                
+                if (iframe) {
+                    const robotId = iframe.src.split('/embed/')[1];
+                    status.innerHTML = `<strong style="color: green;">✅ Widget Yüklendi:</strong> ${robotId}`;
+                } else {
+                    status.innerHTML = `<strong style="color: orange;">⚠️ Widget Yüklenmedi:</strong> Bu URL için robot tanımlanmamış`;
+                }
+            }, 3000);
+        });
+    </script>
+
+    <!-- MarkaMind Smart Widget -->
+    <script>
+        window.MarkaMindConfig = {
+            robotId: "auto", // URL'ye göre otomatik seç
+            position: "right",
+            width: "60px",
+            height: "60px"
+        };
+    </script>
+    <script src="http://localhost:8000/api/widget-loader"></script>
+</body>
+</html>

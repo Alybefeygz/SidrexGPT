@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manuel Widget Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+        }
+        
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        
+        .test-button:hover {
+            background: #0056b3;
+        }
+        
+        .code-block {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 Manuel Widget Test</h1>
+        <p>Bu sayfa manuel robot seçimi ile widget'ları test eder.</p>
+
+        <div class="test-section">
+            <h2>🔧 Robot Değiştirme</h2>
+            <p>Farklı robotları test etmek için bu butonları kullanın:</p>
+            
+            <button class="test-button" onclick="loadWidget('third-robot')">
+                Third Robot Yükle (Kids - Sarı)
+            </button>
+            
+            <button class="test-button" onclick="loadWidget('second-robot')">
+                Second Robot Yükle (Mag4ever - Mor)
+            </button>
+            
+            <button class="test-button" onclick="removeWidget()">
+                Widget'ı Kaldır
+            </button>
+            
+            <div id="widget-status" style="margin-top: 15px; padding: 10px; background: #e9ecef; border-radius: 4px;">
+                <strong>Durum:</strong> Widget yüklenmedi
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>📋 URL Bazlı Test</h2>
+            <p>Gerçek URL kontrolü için:</p>
+            
+            <button class="test-button" onclick="loadWidgetAuto()">
+                Otomatik Robot Seçimi (URL'ye göre)
+            </button>
+            
+            <div id="auto-test-result" style="margin-top: 10px;"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>📜 Sidrex.com için Hazır Kod</h2>
+            <div class="code-block">
+&lt;!-- MarkaMind Smart Widget --&gt;
+&lt;script&gt;
+  window.MarkaMindConfig = {
+    robotId: "auto", // URL'ye göre otomatik seç
+    position: "right",
+    width: "250px",
+    height: "250px"
+  };
+&lt;/script&gt;
+&lt;script src="http://localhost:8000/api/widget-loader"&gt;&lt;/script&gt;
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Widget yönetimi
+        function loadWidget(robotId) {
+            // Mevcut widget'ı kaldır
+            removeWidget();
+            
+            // Yeni widget config'i
+            window.MarkaMindConfig = {
+                robotId: robotId,
+                position: "right",
+                width: "250px",
+                height: "250px"
+            };
+            
+            // Widget script'ini dinamik olarak yükle
+            const script = document.createElement('script');
+            script.src = 'http://localhost:8000/api/widget-loader';
+            script.onload = function() {
+                updateStatus(`✅ ${robotId} başarıyla yüklendi`);
+            };
+            script.onerror = function() {
+                updateStatus(`❌ ${robotId} yüklenirken hata oluştu`);
+            };
+            
+            document.head.appendChild(script);
+            updateStatus(`⏳ ${robotId} yükleniyor...`);
+        }
+        
+        function loadWidgetAuto() {
+            // Mevcut widget'ı kaldır
+            removeWidget();
+            
+            // Auto config
+            window.MarkaMindConfig = {
+                robotId: "auto",
+                position: "right",
+                width: "250px",
+                height: "250px"
+            };
+            
+            // Test için URL bilgisini göster
+            const currentUrl = window.location.href.toLowerCase();
+            let expectedRobot = "Widget yok";
+            
+            if (currentUrl.includes('imuntus-kids') || currentUrl.includes('cocuklar-icin')) {
+                expectedRobot = "Third Robot";
+            } else if (currentUrl.includes('mag4ever')) {
+                expectedRobot = "Second Robot";
+            }
+            
+            document.getElementById('auto-test-result').innerHTML = 
+                `<strong>Mevcut URL:</strong> ${window.location.href}<br>
+                 <strong>Beklenen:</strong> ${expectedRobot}`;
+            
+            // Widget script'ini dinamik olarak yükle
+            const script = document.createElement('script');
+            script.src = 'http://localhost:8000/api/widget-loader';
+            script.onload = function() {
+                setTimeout(() => {
+                    const iframe = document.getElementById('markamind-widget-iframe');
+                    if (iframe) {
+                        const robotId = iframe.src.split('/embed/')[1];
+                        updateStatus(`✅ Otomatik seçim: ${robotId}`);
+                    } else {
+                        updateStatus(`⚠️ Widget yüklenmedi (URL uyumsuz)`);
+                    }
+                }, 1000);
+            };
+            
+            document.head.appendChild(script);
+            updateStatus(`⏳ Otomatik robot seçimi yapılıyor...`);
+        }
+        
+        function removeWidget() {
+            // iframe'i kaldır
+            const iframe = document.getElementById('markamind-widget-iframe');
+            if (iframe) {
+                iframe.remove();
+            }
+            
+            // Overlay'leri kaldır
+            const overlay = document.getElementById('markamind-chat-overlay');
+            if (overlay) {
+                overlay.remove();
+            }
+            
+            // Script'leri kaldır (yeni yükleme için)
+            const scripts = document.querySelectorAll('script[src*="widget-loader"]');
+            scripts.forEach(script => script.remove());
+            
+            updateStatus(`🗑️ Widget kaldırıldı`);
+        }
+        
+        function updateStatus(message) {
+            document.getElementById('widget-status').innerHTML = `<strong>Durum:</strong> ${message}`;
+        }
+        
+        // Sayfa yüklendiğinde durum güncelle
+        document.addEventListener('DOMContentLoaded', function() {
+            updateStatus('Widget yüklenmedi - Test butonlarını kullanın');
+        });
+    </script>
+</body>
+</html>

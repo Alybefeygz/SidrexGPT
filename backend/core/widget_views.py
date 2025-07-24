@@ -47,17 +47,17 @@ class WidgetLoaderView(View):
 (function() {{
   "use strict";
   
-  // MarkaMind Widget Script
-  // Version: 1.0.0
+  // MarkaMind Smart Widget Script
+  // Version: 2.0.0 - URL Based Robot Selection
   
   function initMarkaMindWidget(config) {{
     // Configuration defaults
     const defaults = {{
-      robotId: "first-robot",
+      robotId: "auto", // "auto" = URL'ye göre otomatik seç
       brandId: "sidrex", 
       position: "right",
-      width: "200px",
-      height: "200px",
+      width: "250px",
+      height: "250px",
       right: "20px",
       left: "20px",
       bottom: "20px",
@@ -75,11 +75,48 @@ class WidgetLoaderView(View):
     const backendUrl = "{base_url}";
     const frontendUrl = "http://localhost:3000";  // Frontend URL'i
     
+    // URL bazlı robot seçimi
+    function selectRobotByUrl() {{
+      const currentUrl = window.location.href.toLowerCase();
+      
+      console.log("🔍 MarkaMind Widget Debug - Current URL:", currentUrl);
+      
+      // URL mapping'i
+      if (currentUrl.includes('imuntus-kids') || currentUrl.includes('cocuklar-icin')) {{
+        console.log("✅ MarkaMind Widget - Third Robot seçildi (Kids URL)");
+        return 'third-robot'; // Kids product için third robot
+      }} else if (currentUrl.includes('mag4ever')) {{
+        console.log("✅ MarkaMind Widget - Second Robot seçildi (Mag4ever URL)");
+        return 'second-robot'; // Mag4ever için second robot  
+      }}
+      
+      console.log("❌ MarkaMind Widget - Hiçbir robot URL'si eşleşmedi");
+      // Varsayılan: robot gösterme
+      return null;
+    }}
+    
+    // Robot ID belirle
+    let robotId;
+    if (settings.robotId === "auto") {{
+      robotId = selectRobotByUrl();
+      if (!robotId) {{
+        console.log("MarkaMind Widget: Bu sayfa için robot tanımlanmamış, widget yüklenmeyecek");
+        return; // Widget yükleme
+      }}
+    }} else {{
+      robotId = settings.robotId;
+    }}
+    
     // Robot ID kontrolü
-    if (!settings.robotId) {{
-      console.error("MarkaMind Widget: robotId is required");
+    if (!robotId) {{
+      console.error("MarkaMind Widget: robotId belirlenemedi");
       return;
     }}
+    
+    console.log(`MarkaMind Widget: ${{robotId}} yükleniyor için ${{window.location.href}}`);
+    
+    // Settings'i güncelle
+    settings.robotId = robotId;
     
     // Dil tespiti
     const userLang = navigator.language.toLowerCase();
@@ -88,7 +125,7 @@ class WidgetLoaderView(View):
     // Iframe oluştur (Frontend'den embed sayfasını yükle)
     const iframe = document.createElement("iframe");
     iframe.id = "markamind-widget-iframe";
-    iframe.src = `${{frontendUrl}}/embed/${{settings.robotId}}`;
+    iframe.src = `${{frontendUrl}}/embed/${{robotId}}`;
     
     // Position ayarları
     const positionStyles = settings.position === "left" 
