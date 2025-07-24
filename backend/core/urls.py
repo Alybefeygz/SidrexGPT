@@ -23,6 +23,7 @@ from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from rest_framework.routers import DefaultRouter
 from medya.api.views import MedyaViewSet, StatikVarliklarView
 from .views import get_csrf_token
+from .widget_views import WidgetLoaderView, WidgetConfigView
 
 # API Router'ı oluştur
 router = DefaultRouter()
@@ -59,6 +60,9 @@ urlpatterns = [
     path('api/statik-varliklar/', StatikVarliklarView.as_view(), name='statik-varliklar'),
     path('api/products/', include('products.api.urls')),  # Products API
     path('api/csrf/', get_csrf_token, name='get_csrf_token'),  # Yeni CSRF endpoint
+    # Widget System - YENİ ÖZELLIKLER (mevcut sistem bozulmadan)
+    path('api/widget-loader', WidgetLoaderView.as_view(), name='widget_loader'),
+    path('api/widget-config', WidgetConfigView.as_view(), name='widget_config'),
 ]
 
 # Canlı (production) ve geliştirme (development) ortamları için 

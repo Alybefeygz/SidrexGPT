@@ -42,6 +42,39 @@ class ProfilViewSet(ModelViewSet):
     filter_backends = [SearchFilter]
     search_fields = ['bio']
     
+    def get_permissions(self):
+        """
+        Her request için permissions'ları dinamik olarak al
+        Debug için ek loglama ekle
+        """
+        permissions = super().get_permissions()
+        print(f"🔍 PERMISSION DEBUG - User: {self.request.user}")
+        print(f"🔍 PERMISSION DEBUG - User authenticated: {self.request.user.is_authenticated}")
+        print(f"🔍 PERMISSION DEBUG - User is_staff: {getattr(self.request.user, 'is_staff', False)}")
+        print(f"🔍 PERMISSION DEBUG - User is_superuser: {getattr(self.request.user, 'is_superuser', False)}")
+        print(f"🔍 PERMISSION DEBUG - Action: {self.action}")
+        print(f"🔍 PERMISSION DEBUG - Method: {self.request.method}")
+        print(f"🔍 PERMISSION DEBUG - Path: {self.request.path}")
+        print(f"🔍 PERMISSION DEBUG - URL Name: {getattr(self.request.resolver_match, 'url_name', 'N/A')}")
+        print(f"🔍 PERMISSION DEBUG - Permissions: {[p.__class__.__name__ for p in permissions]}")
+        return permissions
+    
+    def check_permissions(self, request):
+        """
+        Permission kontrolünü override et ve debug bilgisi ekle
+        """
+        print(f"🔍 CHECK_PERMISSIONS DEBUG - User: {request.user}")
+        print(f"🔍 CHECK_PERMISSIONS DEBUG - Method: {request.method}")
+        print(f"🔍 CHECK_PERMISSIONS DEBUG - Action: {getattr(self, 'action', 'None')}")
+        
+        try:
+            result = super().check_permissions(request)
+            print(f"✅ CHECK_PERMISSIONS DEBUG - Permission check PASSED")
+            return result
+        except Exception as e:
+            print(f"❌ CHECK_PERMISSIONS DEBUG - Permission check FAILED: {str(e)}")
+            raise
+    
     def create(self, request, *args, **kwargs):
         """Yeni profil oluştur"""
         user = None

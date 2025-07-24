@@ -259,7 +259,8 @@ if not DEBUG:
     CSRF_COOKIE_SAMESITE = 'None'
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
-    X_FRAME_OPTIONS = 'SAMEORIGIN'
+    # X_FRAME_OPTIONS = 'SAMEORIGIN'  # Widget iframe'leri için devre dışı
+    X_FRAME_OPTIONS = 'ALLOWALL'  # Widget sistemi için iframe izni
     
     # Render gibi ters proxy'ler için Django'ya HTTPS bağlantısına güvenmesini söyle.
     # Bu ayar, secure cookie'lerin doğru çalışması için kritiktir.

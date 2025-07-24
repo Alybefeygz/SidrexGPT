@@ -2,6 +2,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.cache import never_cache
+from django.middleware.csrf import get_token
 import logging
 
 logger = logging.getLogger(__name__)
@@ -16,9 +17,10 @@ def get_csrf_token(request):
     """
     try:
         # CSRF token'ı response'a ekle
+        csrf_token = get_token(request)
         response = JsonResponse({
             'detail': 'CSRF cookie set successfully',
-            'csrf_token': request.META.get('CSRF_COOKIE'),
+            'csrf_token': csrf_token,
             'secure': request.is_secure(),
             'domain': request.get_host(),
             'success': True
