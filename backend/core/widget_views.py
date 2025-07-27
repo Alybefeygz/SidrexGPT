@@ -416,20 +416,120 @@ class WidgetLoaderView(View):
     console.log("MarkaMind Widget initialized successfully!");
   }}
   
+  // URL değişikliği takip sistemi - sayfa navigation'ları için
+  function setupUrlChangeListener() {{
+    let currentUrl = window.location.href;
+    let currentRobotId = null;
+    
+    // Mevcut widget'ın robot ID'sini takip et
+    function getCurrentRobotId() {{
+      const iframe = document.getElementById('markamind-widget-iframe');
+      if (iframe && iframe.src) {{
+        const match = iframe.src.match(/\/embed\/([^?#]*)/);
+        return match ? match[1] : null;
+      }}
+      return null;
+    }}
+    
+    // URL değişikliğini kontrol et ve widget'ı güncelle
+    function checkUrlChange() {{
+      const newUrl = window.location.href;
+      
+      if (newUrl !== currentUrl) {{
+        console.log("🔄 URL changed from", currentUrl, "to", newUrl);
+        currentUrl = newUrl;
+        
+        // Yeni URL için uygun robot'u belirle
+        const newRobotId = determineRobotForUrl(newUrl);
+        const existingRobotId = getCurrentRobotId();
+        
+        console.log("🤖 Current robot:", existingRobotId, "| Required robot:", newRobotId);
+        
+        // Robot değişikliği gerekli mi kontrol et
+        if (existingRobotId !== newRobotId) {{
+          console.log("🔄 Robot change needed, updating widget...");
+          
+          // Mevcut widget'ı temizle
+          cleanupPreviousWidget();
+          
+          // Eğer yeni sayfa için robot gerekiyorsa yükle
+          if (newRobotId && window.MarkaMindConfig) {{
+            const newConfig = Object.assign({{}}, window.MarkaMindConfig, {{
+              robotId: newRobotId
+            }});
+            setTimeout(() => {{
+              initMarkaMindWidget(newConfig);
+            }}, 100); // Kısa gecikme ile yeniden yükle
+          }}
+        }}
+      }}
+    }}
+    
+    // URL için robot ID belirleme fonksiyonu
+    function determineRobotForUrl(url) {{
+      const lowerUrl = url.toLowerCase();
+      
+      if (lowerUrl.includes('imuntus-kids') || lowerUrl.includes('cocuklar-icin')) {{
+        return 'third-robot';
+      }} else if (lowerUrl.includes('mag4ever')) {{
+        return 'second-robot';
+      }}
+      
+      return null; // Bu sayfa için robot yok
+    }}
+    
+    // URL değişikliğini izleme yöntemleri
+    
+    // 1. popstate eventi (geri/ileri butonları)
+    window.addEventListener('popstate', function() {{
+      setTimeout(checkUrlChange, 100);
+    }});
+    
+    // 2. pushState ve replaceState override (programmatik navigation)
+    const originalPushState = history.pushState;
+    const originalReplaceState = history.replaceState;
+    
+    history.pushState = function() {{
+      originalPushState.apply(history, arguments);
+      setTimeout(checkUrlChange, 100);
+    }};
+    
+    history.replaceState = function() {{
+      originalReplaceState.apply(history, arguments);
+      setTimeout(checkUrlChange, 100);
+    }};
+    
+    // 3. Periyodik kontrol (fallback için)
+    setInterval(checkUrlChange, 2000);
+    
+    // 4. Link tıklamalarını izle
+    document.addEventListener('click', function(e) {{
+      const link = e.target.closest('a');
+      if (link && link.href && link.href !== window.location.href) {{
+        setTimeout(checkUrlChange, 500);
+      }}
+    }});
+    
+    console.log("🔄 URL change listener setup completed");
+  }}
+  
   // Otomatik başlatma
   if (typeof window.MarkaMindConfig !== "undefined") {{
     if (document.readyState === "loading") {{
       document.addEventListener("DOMContentLoaded", function() {{
         initMarkaMindWidget(window.MarkaMindConfig);
+        setupUrlChangeListener(); // URL takip sistemini başlat
       }});
     }} else {{
       initMarkaMindWidget(window.MarkaMindConfig);
+      setupUrlChangeListener(); // URL takip sistemini başlat
     }}
   }}
   
   // Global fonksiyon olarak expose et
   window.MarkaMindWidget = {{
-    init: initMarkaMindWidget
+    init: initMarkaMindWidget,
+    setupUrlListener: setupUrlChangeListener
   }};
   
 }})();
