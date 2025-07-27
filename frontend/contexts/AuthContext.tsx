@@ -185,10 +185,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const response = await api.auth.getUser()
         setUser(response.data as User)
-      } catch (error) {
-        // This will fail if the cookie is invalid or not present.
-        // It's the expected behavior for a logged-out user.
-        setUser(null)
+      } catch (error: any) {
+        // 401 hatasını sessizce yakala (console'a log atmayacak)
+        if (error.silentAuth) {
+          // Kullanıcı giriş yapmamış, bu normal bir durum
+          setUser(null)
+        } else {
+          // Diğer hatalar için log at
+          console.error("Auth check failed:", error)
+          setUser(null)
+        }
       } finally {
         setLoading(false)
       }

@@ -177,6 +177,12 @@ apiClient.interceptors.response.use(
   },
   async (error) => {
     if (error.response?.status === 401) {
+      // Silent auth hatalarını console'da gösterme
+      if (error.config?.url?.includes('/rest-auth/user/')) {
+        // getUser 401 hatasını sessizce geç
+        return Promise.reject({ ...error, silentAuth: true });
+      }
+      
       // Sadece admin/yönetim sayfalarında login'e yönlendir
       const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
       const isAdminPath = currentPath.includes('/yonetim') || currentPath.includes('/users') || currentPath.includes('/brands') || currentPath.includes('/api-test');
@@ -240,7 +246,13 @@ export const api = {
     },
     
     logout: () => apiCallWithCSRF(async () => await apiClient.post('/rest-auth/logout/')),
-    getUser: () => apiClient.get('/rest-auth/user/'),
+    getUser: () => apiClient.get('/rest-auth/user/').catch(error => {
+      // 401 hatasını sessizce yakala (kullanıcı giriş yapmamış)
+      if (error.response?.status === 401) {
+        return Promise.reject({ ...error, silentAuth: true });
+      }
+      throw error;
+    }),
   },
 
   // Profiller endpoints

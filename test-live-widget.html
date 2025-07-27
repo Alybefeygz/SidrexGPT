@@ -203,16 +203,45 @@
         }
         
         function removeWidget() {
+            // Iframe'i kaldır
             const iframe = document.getElementById('markamind-widget-iframe');
-            if (iframe) iframe.remove();
+            if (iframe) {
+                iframe.remove();
+                console.log("🧹 Iframe removed from DOM");
+            }
             
+            // Overlay'i kaldır
             const overlay = document.getElementById('markamind-chat-overlay');
-            if (overlay) overlay.remove();
+            if (overlay) {
+                overlay.remove();
+                console.log("🧹 Overlay removed from DOM");
+            }
             
+            // Site elementlerini etkinleştir
+            document.querySelectorAll('.markamind-disabled').forEach(function(el) {
+                el.style.pointerEvents = 'auto';
+                el.classList.remove('markamind-disabled');
+            });
+            
+            // LocalStorage temizle
+            localStorage.removeItem('markamind-chat-state');
+            console.log("🧹 LocalStorage cleared");
+            
+            // Event listener'ları temizle
+            if (window.markamindMessageListener) {
+                window.removeEventListener('message', window.markamindMessageListener);
+                window.markamindMessageListener = null;
+                console.log("🧹 Message listener removed");
+            }
+            
+            // Widget loader script'lerini kaldır
             const scripts = document.querySelectorAll('script[src*="widget-loader"]');
-            scripts.forEach(script => script.remove());
+            scripts.forEach(script => {
+                script.remove();
+                console.log("🧹 Widget loader script removed");
+            });
             
-            updateStatus(`🗑️ Widget kaldırıldı`);
+            updateStatus(`🗑️ Widget tamamen kaldırıldı`);
         }
         
         function updateStatus(message) {
