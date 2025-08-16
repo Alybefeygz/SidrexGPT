@@ -27,12 +27,14 @@ interface AuthContextType {
   logout: () => void
   checkAdminAccess: () => boolean
   canEditPDF: () => boolean
+  canEditMessages: () => boolean
   canViewBrandManagement: () => boolean
   canEditBrandManagement: () => boolean
   getUserPermissions: () => {
     canChat: boolean
     canViewRobots: boolean
     canEditPDF: boolean
+    canEditMessages: boolean
     canViewBrands: boolean
     canEditBrands: boolean
     canAccessAdmin: boolean
@@ -76,6 +78,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return !!user?.brand_id
   }
 
+  const canEditMessages = () => {
+    // canEditPDF ile aynı yetkiler - Admin her şeyi yapabilir
+    if (user?.is_staff || user?.is_superuser) return true
+    
+    // Markası yoksa yapamaz
+    if (!user?.brand_id) return false
+    
+    // Pro veya Premium paketi varsa yapabilir
+    return user?.brand_package_type === 'pro' || user?.brand_package_type === 'premium'
+  }
+
   const canEditBrandManagement = () => {
     // Sadece admin düzenleyebilir
     return user?.is_staff || user?.is_superuser || false
@@ -92,6 +105,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         canChat: true,
         canViewRobots: true,
         canEditPDF: true,
+        canEditMessages: true,
         canViewBrands: true,
         canEditBrands: true,
         canAccessAdmin: true,
@@ -105,6 +119,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           canChat: true,
           canViewRobots: true,
           canEditPDF: true,
+          canEditMessages: true,
           canViewBrands: true,
           canEditBrands: false,
           canAccessAdmin: false,
@@ -115,6 +130,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           canChat: true,
           canViewRobots: true,
           canEditPDF: false,
+          canEditMessages: false,
           canViewBrands: true,
           canEditBrands: false,
           canAccessAdmin: false,
@@ -129,6 +145,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       canChat: true,
       canViewRobots: true,
       canEditPDF: false,
+      canEditMessages: false,
       canViewBrands: false,
       canEditBrands: false,
       canAccessAdmin: false,
@@ -212,6 +229,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     logout,
     checkAdminAccess,
     canEditPDF,
+    canEditMessages,
     canViewBrandManagement,
     canEditBrandManagement,
     getUserPermissions

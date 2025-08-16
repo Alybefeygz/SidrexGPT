@@ -1,5 +1,5 @@
 from django.urls import path, include
-from robots.api.views import RobotViewSet, RobotPDFViewSet, BrandViewSet, robots_root, robot_detail_by_slug, RobotChatView
+from robots.api.views import RobotViewSet, RobotPDFViewSet, BrandViewSet, robots_root, robot_detail_by_slug, RobotChatView, RobotMessagesView
 from rest_framework.routers import DefaultRouter
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, renderer_classes, permission_classes
@@ -255,6 +255,12 @@ def robots_root(request, format=None):
         elif 'kids' in robot.name.lower():
             slug = 'sidrexgpt-kids'
             chat_slug = 'sidrexgpt-kids-chat'
+        elif 'repro' in robot.name.lower() or 'women' in robot.name.lower():
+            slug = 'repro-womens'
+            chat_slug = 'repro-womens-chat'
+        elif 'milk' in robot.name.lower() and 'thistle' in robot.name.lower():
+            slug = 'milk-thistle'
+            chat_slug = 'milk-thistle-chat'
         else:
             slug = create_robot_slug(robot.name)
             chat_slug = f'{slug}-chat'
@@ -284,6 +290,11 @@ def robot_detail_by_slug(request, slug, format=None):
         robot = Robot.objects.filter(name__icontains='Mag').first()
     elif slug == 'sidrexgpt-kids':
         robot = Robot.objects.filter(name__icontains='Kids').first()
+    elif slug == 'repro-womens':
+        robot = Robot.objects.filter(name__icontains='Repro').first() or \
+               Robot.objects.filter(name__icontains='Women').first()
+    elif slug == 'milk-thistle':
+        robot = Robot.objects.filter(name__icontains='Milk Thistle').first()
     else:
         # Genel slug araması
         robots = Robot.objects.all()
@@ -379,6 +390,11 @@ class RobotChatView(GenericAPIView):
             return Robot.objects.filter(name__icontains='Mag').first()
         elif slug == 'sidrexgpt-kids':
             return Robot.objects.filter(name__icontains='Kids').first()
+        elif slug == 'repro-womens':
+            return Robot.objects.filter(name__icontains='Repro').first() or \
+                   Robot.objects.filter(name__icontains='Women').first()
+        elif slug == 'milk-thistle':
+            return Robot.objects.filter(name__icontains='Milk Thistle').first()
         else:
             # Genel slug araması
             robots = Robot.objects.all()
@@ -802,6 +818,9 @@ urlpatterns = [
     # Slug bazlı robot detay ve chat endpoint'leri
     path('robots/<str:slug>/', robot_detail_by_slug, name='robot-detail-by-slug'),
     path('robots/<str:slug>/chat/', RobotChatView.as_view(), name='robot-chat'),
+    
+    # Robot Messages API
+    path('robots/<int:robot_id>/messages/', RobotMessagesView.as_view(), name='robot-messages'),
     
     # Router URL'leri
     path('', include(router.urls)),

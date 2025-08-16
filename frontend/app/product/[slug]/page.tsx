@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import SecondRobot from "@/components/robots/second-robot/SecondRobot"
 import ThirdRobot from "@/components/robots/third-robot/ThirdRobot"
+import FourthRobot from "@/components/robots/fourth-robot/FourthRobot"
+import FifthRobot from "@/components/robots/fifth-robot/FifthRobot"
 import PDFUploader from "@/components/PDFUploader"
 
 // Product data - in a real app this would come from a database
@@ -787,6 +789,28 @@ export default function ProductPage({ params }: ProductPageProps) {
           <ThirdRobot
             onChatToggle={handleChatToggle}
             isOtherChatOpen={activeChatRobot !== null && activeChatRobot !== "third"}
+            isFloating={true}
+          />
+        </div>
+      )}
+
+      {/* Floating Fourth Robot for zzen and related products */}
+      {(slug === 'zzen' || product.name === 'Zzen') && (
+        <div className="fixed bottom-6 right-6 z-50">
+          <FourthRobot
+            onChatToggle={handleChatToggle}
+            isOtherChatOpen={activeChatRobot !== null && activeChatRobot !== "fourth"}
+            isFloating={true}
+          />
+        </div>
+      )}
+
+      {/* Floating Fifth Robot for milk-thistle-complex and related products */}
+      {(slug === 'milk-thistle-complex' || product.name === 'Milk Thistle Complex') && (
+        <div className="fixed bottom-6 right-6 z-50">
+          <FifthRobot
+            onChatToggle={handleChatToggle}
+            isOtherChatOpen={activeChatRobot !== null && activeChatRobot !== "fifth"}
             isFloating={true}
           />
         </div>

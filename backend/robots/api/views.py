@@ -1093,4 +1093,136 @@ BAĞLAM:
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+class RobotMessagesView(APIView):
+    """
+    Robot Custom Messages API - ZZEN robot için özel mesaj yönetimi
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request, robot_id):
+        """Robot'un özel mesajlarını getir"""
+        try:
+            robot = Robot.objects.get(id=robot_id)
+            
+            # ZZEN robot kontrolü (slug kontrolü)
+            if robot.get_slug() != 'zzen':
+                return Response(
+                    {'detail': 'Bu özellik sadece ZZEN robot için kullanılabilir.'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            # Yetki kontrolü
+            if not self._can_edit_messages(request.user, robot):
+                return Response(
+                    {'detail': 'Bu robot için mesaj düzenleme yetkiniz yok.'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            # Varsayılan mesajlar yoksa ekle
+            if not robot.custom_messages:
+                default_messages = [
+                    "Zzen sayesinde mutlu bir uykuyu yaşıyorum.",
+                    "Zzen var, uykular artık daha derin, daha dingin.",
+                    "Şuanda uyuyorum!!!",
+                    "Zzen sayesinde huzurlu bir uyku artık benimle."
+                ]
+                robot.custom_messages = default_messages
+                robot.save()
+            
+            return Response({
+                'robot_id': robot.id,
+                'messages': robot.custom_messages,
+                'max_messages': 5
+            })
+            
+        except Robot.DoesNotExist:
+            return Response(
+                {'detail': 'Robot bulunamadı.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+    
+    def put(self, request, robot_id):
+        """Robot'un özel mesajlarını güncelle"""
+        try:
+            robot = Robot.objects.get(id=robot_id)
+            
+            # ZZEN robot kontrolü
+            if robot.get_slug() != 'zzen':
+                return Response(
+                    {'detail': 'Bu özellik sadece ZZEN robot için kullanılabilir.'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            # Yetki kontrolü
+            if not self._can_edit_messages(request.user, robot):
+                return Response(
+                    {'detail': 'Bu robot için mesaj düzenleme yetkiniz yok.'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            messages = request.data.get('messages', [])
+            
+            # Validasyonlar
+            if not isinstance(messages, list):
+                return Response(
+                    {'detail': 'Mesajlar liste formatında olmalıdır.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            if len(messages) > 5:
+                return Response(
+                    {'detail': 'Maksimum 5 mesaj eklenebilir.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Her mesajı kontrol et
+            for i, message in enumerate(messages):
+                if not isinstance(message, str):
+                    return Response(
+                        {'detail': f'{i+1}. mesaj metin formatında olmalıdır.'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                
+                if len(message.strip()) == 0:
+                    return Response(
+                        {'detail': f'{i+1}. mesaj boş olamaz.'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                
+                if len(message) > 200:
+                    return Response(
+                        {'detail': f'{i+1}. mesaj 200 karakterden uzun olamaz.'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            
+            # Mesajları güncelle
+            robot.custom_messages = [msg.strip() for msg in messages]
+            robot.save()
+            
+            return Response({
+                'robot_id': robot.id,
+                'messages': robot.custom_messages,
+                'message': 'Mesajlar başarıyla güncellendi.'
+            })
+            
+        except Robot.DoesNotExist:
+            return Response(
+                {'detail': 'Robot bulunamadı.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+    
+    def _can_edit_messages(self, user, robot):
+        """Kullanıcının robot mesajlarını düzenleme yetkisi var mı?"""
+        # Superuser ve staff her zaman düzenleyebilir
+        if user.is_superuser or user.is_staff:
+            return True
+        
+        # Kullanıcının profili ve markası var mı?
+        if hasattr(user, 'profil') and user.profil.brand:
+            # Kullanıcının markası robot'un markası ile aynı mı?
+            return user.profil.brand == robot.brand
+        
+        return False
+
+
  

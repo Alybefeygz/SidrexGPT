@@ -427,6 +427,8 @@ export const api = {
       sidrexgpt: '/robots/sidrexgpt/chat/',
       sidrexgptMag: '/robots/sidrexgpt-mag/chat/',
       sidrexgptKids: '/robots/sidrexgpt-kids/chat/',
+      zzen: '/robots/zzen/chat/',
+      slmx: '/robots/slmx/chat/',
       bySlug: (slug: string) => `/robots/${slug}/chat/`,
     }
   },

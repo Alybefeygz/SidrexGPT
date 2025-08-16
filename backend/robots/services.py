@@ -48,7 +48,7 @@ def download_pdf_content_from_drive(gdrive_file_id):
     """Verilen Google Drive dosya ID'sinden dosyanın içeriğini indirir."""
     try:
         service = _get_gdrive_service()
-        request = service.files().get_media(fileId=gdrive_file_id)
+        request = service.files().get_media(fileId=gdrive_file_id, supportsAllDrives=True)
         fh = io.BytesIO()
         downloader = MediaIoBaseDownload(fh, request)
         done = False
@@ -169,7 +169,8 @@ def upload_pdf_to_services(file_obj, robot):
         file = service.files().create(
             body=file_metadata,
             media_body=media,
-            fields='id, webViewLink'
+            fields='id, webViewLink',
+            supportsAllDrives=True
         ).execute()
         
         gdrive_file_id = file.get('id')
@@ -249,7 +250,7 @@ def delete_pdf_from_services(pdf_instance):
                 scopes=['https://www.googleapis.com/auth/drive.file']
             )
             service = build('drive', 'v3', credentials=creds)
-            service.files().delete(fileId=pdf_instance.gdrive_file_id).execute()
+            service.files().delete(fileId=pdf_instance.gdrive_file_id, supportsAllDrives=True).execute()
             logger.info("Google Drive'dan başarıyla silindi.")
         except HttpError as error:
             # Dosya zaten yoksa (404), hata olarak sayma.

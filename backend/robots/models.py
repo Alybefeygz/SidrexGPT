@@ -227,6 +227,12 @@ class Robot(models.Model):
     name = models.CharField(max_length=100, verbose_name="Robot İsmi")
     product_name = models.CharField(max_length=150, verbose_name="Ürün İsmi")
     brand = models.ForeignKey(Brand, on_delete=models.CASCADE, related_name='robots', verbose_name="Marka")
+    custom_messages = models.JSONField(
+        default=list, 
+        blank=True, 
+        verbose_name="Özel Robot Mesajları",
+        help_text="ZZEN robot için özelleştirilebilir mesajlar (maksimum 5 adet)"
+    )
     yaratilma_zamani = models.DateTimeField(auto_now_add=True)
     guncellenme_zamani = models.DateTimeField(auto_now=True)
     
@@ -255,12 +261,16 @@ class Robot(models.Model):
         name = name.replace('ğ', 'g').replace('ü', 'u').replace('ş', 's')
         name = name.replace('ı', 'i').replace('ö', 'o').replace('ç', 'c')
         # Özel durumlar
-        if 'sidrexgpt asistani' in name:
+        if 'zzen' in name:
+            return 'zzen'
+        elif 'sidrexgpt asistani' in name:
             return 'sidrexgpt-asistani'
         elif 'mag' in name:
             return 'sidrexgpt-mag'
         elif 'kids' in name:
             return 'sidrexgpt-kids'
+        elif 'dorduncu robot' in name:
+            return 'zzen'
         # Genel durum
         import re
         name = re.sub(r'[^a-z0-9\s]', '', name)
