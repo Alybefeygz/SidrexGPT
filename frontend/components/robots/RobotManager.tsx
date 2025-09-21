@@ -8,6 +8,10 @@ import FourthRobot from "./fourth-robot/FourthRobot"
 import FifthRobot from "./fifth-robot/FifthRobot"
 import SixthRobot from "./sixth-robot/SixthRobot"
 import SeventhRobot from "./seventh-robot/SeventhRobot"
+import EighthRobot from "./eighth-robot/EighthRobot"
+import NinthRobot from "./ninth-robot/NinthRobot"
+import TenthRobot from "./tenth-robot/TenthRobot"
+import EleventhRobot from "./eleventh-robot/EleventhRobot"
 import Link from "next/link"
 
 export default function RobotManager() {
@@ -112,20 +116,86 @@ export default function RobotManager() {
         </div>
       </div>
 
-      {/* Fourth Row - Seventh Robot (SLM-X) centered */}
+      {/* Fourth Row - Seventh Robot (SLM-X) and Eighth Robot (Olivia) */}
       <div className="flex items-center justify-center py-24 mt-48">
-        <div className="flex flex-col items-center">
-          <SeventhRobot
-            onChatToggle={handleChatToggle}
-            isOtherChatOpen={activeChatRobot !== null && activeChatRobot !== "seventh"}
-          />
-          <Link 
-            href="/sidrexgpt/slmx" 
-            className="mt-8 font-medium transition-colors z-10 relative bg-white py-2 px-4 rounded-md shadow-sm"
-            style={{ color: '#8EE21B' }}
-          >
-            Detayını gör
-          </Link>
+        <div className="flex flex-row items-center space-x-[32rem] ml-48">
+          <div className="flex flex-col items-center">
+            <SeventhRobot
+              onChatToggle={handleChatToggle}
+              isOtherChatOpen={activeChatRobot !== null && activeChatRobot !== "seventh"}
+            />
+            <Link 
+              href="/sidrexgpt/slmx" 
+              className="mt-8 font-medium transition-colors z-10 relative bg-white py-2 px-4 rounded-md shadow-sm"
+              style={{ color: '#8EE21B' }}
+            >
+              Detayını gör
+            </Link>
+          </div>
+          <div className="flex flex-col items-center">
+            <EighthRobot
+              onChatToggle={handleChatToggle}
+              isOtherChatOpen={activeChatRobot !== null && activeChatRobot !== "eighth"}
+            />
+            <Link 
+              href="/sidrexgpt/olivia" 
+              className="mt-8 font-medium transition-colors z-10 relative bg-white py-2 px-4 rounded-md shadow-sm"
+              style={{ color: '#D9E60D' }}
+            >
+              Detayını gör
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* Fifth Row - Ninth Robot (Lipo Iron) - aligned vertically with seventh robot */}
+      <div className="flex items-center justify-center py-24 mt-48">
+        <div className="flex flex-row items-center space-x-[32rem] ml-48">
+          <div className="flex flex-col items-center">
+            <NinthRobot
+              onChatToggle={handleChatToggle}
+              isOtherChatOpen={activeChatRobot !== null && activeChatRobot !== "ninth"}
+            />
+            <Link 
+              href="/sidrexgpt/lipo-iron" 
+              className="mt-8 font-medium transition-colors z-10 relative bg-white py-2 px-4 rounded-md shadow-sm"
+              style={{ color: '#E82423' }}
+            >
+              Detayını gör
+            </Link>
+          </div>
+          <div className="flex flex-col items-center">
+            <TenthRobot
+              onChatToggle={handleChatToggle}
+              isOtherChatOpen={activeChatRobot !== null && activeChatRobot !== "tenth"}
+            />
+            <Link 
+              href="/sidrexgpt/pro-men" 
+              className="mt-8 font-medium transition-colors z-10 relative bg-white py-2 px-4 rounded-md shadow-sm"
+              style={{ color: '#8BEF95' }}
+            >
+              Detayını gör
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* Sixth Row - Eleventh Robot (Imuntus) - aligned vertically with ninth robot */}
+      <div className="flex items-center justify-center py-24 mt-48">
+        <div className="flex flex-row items-center space-x-[32rem] ml-48">
+          <div className="flex flex-col items-center">
+            <EleventhRobot
+              onChatToggle={handleChatToggle}
+              isOtherChatOpen={activeChatRobot !== null && activeChatRobot !== "eleventh"}
+            />
+            <Link 
+              href="/sidrexgpt/imuntus" 
+              className="mt-8 font-medium transition-colors z-10 relative bg-white py-2 px-4 rounded-md shadow-sm"
+              style={{ color: '#FF8616' }}
+            >
+              Detayını gör
+            </Link>
+          </div>
         </div>
       </div>
     </>

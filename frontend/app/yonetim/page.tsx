@@ -141,25 +141,89 @@ export default function YonetimPage() {
                         asChild 
                         className="w-full hover:opacity-90 transition-opacity" 
                         size="sm" 
-                        style={{ backgroundColor: "#16B6C2", color: "white", border: "none" }}
+                        style={{ backgroundColor: "#c0c0c0", color: "white", border: "none" }}
                       >
-                        <Link href="/sidrexgpt/ana-robot">SidrexGPT</Link>
+                        <Link href="/sidrexgpt/ana-robot">SidrexGPT Asistanı</Link>
                       </Button>
                       <Button 
                         asChild 
                         className="w-full hover:opacity-90 transition-opacity" 
                         size="sm" 
-                        style={{ backgroundColor: "#FFC429", color: "white", border: "none" }}
+                        style={{ backgroundColor: "#6d71b6", color: "white", border: "none" }}
                       >
-                        <Link href="/sidrexgpt/imuntus-kids">SidrexGPT Kids</Link>
+                        <Link href="/sidrexgpt/mag4ever">Mag4Ever</Link>
                       </Button>
                       <Button 
                         asChild 
                         className="w-full hover:opacity-90 transition-opacity" 
                         size="sm" 
-                        style={{ backgroundColor: "#6D71B6", color: "white", border: "none" }}
+                        style={{ backgroundColor: "#ffc429", color: "white", border: "none" }}
                       >
-                        <Link href="/sidrexgpt/mag4ever">SidrexGPT Mag</Link>
+                        <Link href="/sidrexgpt/imuntus-kids">Imuntus Kids</Link>
+                      </Button>
+                      <Button 
+                        asChild 
+                        className="w-full hover:opacity-90 transition-opacity" 
+                        size="sm" 
+                        style={{ backgroundColor: "#5ca9ed", color: "white", border: "none" }}
+                      >
+                        <Link href="/sidrexgpt/zzen">Zzen</Link>
+                      </Button>
+                      <Button 
+                        asChild 
+                        className="w-full hover:opacity-90 transition-opacity" 
+                        size="sm" 
+                        style={{ backgroundColor: "#B66ECC", color: "white", border: "none" }}
+                      >
+                        <Link href="/sidrexgpt/milk-thistle">Milk Thistle Complex</Link>
+                      </Button>
+                      <Button 
+                        asChild 
+                        className="w-full hover:opacity-90 transition-opacity" 
+                        size="sm" 
+                        style={{ backgroundColor: "#E78EEB", color: "white", border: "none" }}
+                      >
+                        <Link href="/sidrexgpt/repro-womens">Repro Women's Once Daily</Link>
+                      </Button>
+                      <Button 
+                        asChild 
+                        className="w-full hover:opacity-90 transition-opacity" 
+                        size="sm" 
+                        style={{ backgroundColor: "#8FE11A", color: "white", border: "none" }}
+                      >
+                        <Link href="/sidrexgpt/slmx">Slm-X</Link>
+                      </Button>
+                      <Button 
+                        asChild 
+                        className="w-full hover:opacity-90 transition-opacity" 
+                        size="sm" 
+                        style={{ backgroundColor: "#D9E60D", color: "white", border: "none" }}
+                      >
+                        <Link href="/sidrexgpt/olivia">Olivia</Link>
+                      </Button>
+                      <Button 
+                        asChild 
+                        className="w-full hover:opacity-90 transition-opacity" 
+                        size="sm" 
+                        style={{ backgroundColor: "#E07E73", color: "white", border: "none" }}
+                      >
+                        <Link href="/sidrexgpt/lipo-iron">Lipo Iron Complex</Link>
+                      </Button>
+                      <Button 
+                        asChild 
+                        className="w-full hover:opacity-90 transition-opacity" 
+                        size="sm" 
+                        style={{ backgroundColor: "#08966F", color: "white", border: "none" }}
+                      >
+                        <Link href="/sidrexgpt/pro-men">Pro Men's Once Daily</Link>
+                      </Button>
+                      <Button 
+                        asChild 
+                        className="w-full hover:opacity-90 transition-opacity" 
+                        size="sm" 
+                        style={{ backgroundColor: "#FF8616", color: "white", border: "none" }}
+                      >
+                        <Link href="/sidrexgpt/imuntus">Imuntus</Link>
                       </Button>
                     </div>
                   </div>
@@ -260,9 +324,9 @@ export default function YonetimPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center">
             <h1 className="text-3xl font-bold text-gray-900 mb-8">Admin Yönetim Paneli</h1>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl mx-auto">
               
-              {/* Robots Management */}
+              {/* Robots Management - Left side */}
               <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
                 <div className="text-center">
                   <div className="text-4xl mb-4">🤖</div>
@@ -273,57 +337,124 @@ export default function YonetimPage() {
                       asChild 
                       className="w-full hover:opacity-90 transition-opacity" 
                       size="sm" 
-                      style={{ backgroundColor: "#16B6C2", color: "white", border: "none" }}
+                      style={{ backgroundColor: "#c0c0c0", color: "white", border: "none" }}
                     >
-                      <Link href="/sidrexgpt/ana-robot">SidrexGPT</Link>
+                      <Link href="/sidrexgpt/ana-robot">SidrexGPT Asistanı</Link>
                     </Button>
                     <Button 
                       asChild 
                       className="w-full hover:opacity-90 transition-opacity" 
                       size="sm" 
-                      style={{ backgroundColor: "#FFC429", color: "white", border: "none" }}
+                      style={{ backgroundColor: "#6d71b6", color: "white", border: "none" }}
                     >
-                      <Link href="/sidrexgpt/imuntus-kids">SidrexGPT Kids</Link>
+                      <Link href="/sidrexgpt/mag4ever">Mag4Ever</Link>
                     </Button>
                     <Button 
                       asChild 
                       className="w-full hover:opacity-90 transition-opacity" 
                       size="sm" 
-                      style={{ backgroundColor: "#6D71B6", color: "white", border: "none" }}
+                      style={{ backgroundColor: "#ffc429", color: "white", border: "none" }}
                     >
-                      <Link href="/sidrexgpt/mag4ever">SidrexGPT Mag</Link>
+                      <Link href="/sidrexgpt/imuntus-kids">Imuntus Kids</Link>
+                    </Button>
+                    <Button 
+                      asChild 
+                      className="w-full hover:opacity-90 transition-opacity" 
+                      size="sm" 
+                      style={{ backgroundColor: "#5ca9ed", color: "white", border: "none" }}
+                    >
+                      <Link href="/sidrexgpt/zzen">Zzen</Link>
+                    </Button>
+                    <Button 
+                      asChild 
+                      className="w-full hover:opacity-90 transition-opacity" 
+                      size="sm" 
+                      style={{ backgroundColor: "#B66ECC", color: "white", border: "none" }}
+                    >
+                      <Link href="/sidrexgpt/milk-thistle">Milk Thistle Complex</Link>
+                    </Button>
+                    <Button 
+                      asChild 
+                      className="w-full hover:opacity-90 transition-opacity" 
+                      size="sm" 
+                      style={{ backgroundColor: "#E78EEB", color: "white", border: "none" }}
+                    >
+                      <Link href="/sidrexgpt/repro-womens">Repro Women's Once Daily</Link>
+                    </Button>
+                    <Button 
+                      asChild 
+                      className="w-full hover:opacity-90 transition-opacity" 
+                      size="sm" 
+                      style={{ backgroundColor: "#8FE11A", color: "white", border: "none" }}
+                    >
+                      <Link href="/sidrexgpt/slmx">Slm-X</Link>
+                    </Button>
+                    <Button 
+                      asChild 
+                      className="w-full hover:opacity-90 transition-opacity" 
+                      size="sm" 
+                      style={{ backgroundColor: "#D9E60D", color: "white", border: "none" }}
+                    >
+                      <Link href="/sidrexgpt/olivia">Olivia</Link>
+                    </Button>
+                    <Button 
+                      asChild 
+                      className="w-full hover:opacity-90 transition-opacity" 
+                      size="sm" 
+                      style={{ backgroundColor: "#E07E73", color: "white", border: "none" }}
+                    >
+                      <Link href="/sidrexgpt/lipo-iron">Lipo Iron Complex</Link>
+                    </Button>
+                    <Button 
+                      asChild 
+                      className="w-full hover:opacity-90 transition-opacity" 
+                      size="sm" 
+                      style={{ backgroundColor: "#08966F", color: "white", border: "none" }}
+                    >
+                      <Link href="/sidrexgpt/pro-men">Pro Men's Once Daily</Link>
+                    </Button>
+                    <Button 
+                      asChild 
+                      className="w-full hover:opacity-90 transition-opacity" 
+                      size="sm" 
+                      style={{ backgroundColor: "#FF8616", color: "white", border: "none" }}
+                    >
+                      <Link href="/sidrexgpt/imuntus">Imuntus</Link>
                     </Button>
                   </div>
                 </div>
               </div>
 
-              {/* Brand Management - Only for Admin users */}
-              {isAdmin && (
-                <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="text-center">
-                    <div className="text-4xl mb-4">🏢</div>
-                    <h3 className="text-xl font-semibold text-gray-900 mb-2">Marka Yönetimi</h3>
-                    <p className="text-gray-600 mb-4">Marka ayarlarını düzenleyin</p>
-                    <Button asChild className="w-full">
-                      <Link href="/brands">Markaları Yönet</Link>
-                    </Button>
+              {/* Right side - Management Cards Stacked */}
+              <div className="space-y-6">
+                {/* User Management - Only for Admin users */}
+                {isAdmin && (
+                  <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="text-center">
+                      <div className="text-4xl mb-4">👥</div>
+                      <h3 className="text-xl font-semibold text-gray-900 mb-2">Kullanıcı Yönetimi</h3>
+                      <p className="text-gray-600 mb-4">Kullanıcı bilgilerini görüntüleyin ve yönetin</p>
+                      <Button asChild className="w-full">
+                        <Link href="/users">Kullanıcıları Yönet</Link>
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* User Management - Only for Admin users */}
-              {isAdmin && (
-                <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="text-center">
-                    <div className="text-4xl mb-4">👥</div>
-                    <h3 className="text-xl font-semibold text-gray-900 mb-2">Kullanıcı Yönetimi</h3>
-                    <p className="text-gray-600 mb-4">Kullanıcı bilgilerini görüntüleyin ve yönetin</p>
-                    <Button asChild className="w-full">
-                      <Link href="/users">Kullanıcıları Yönet</Link>
-                    </Button>
+                {/* Brand Management - Only for Admin users */}
+                {isAdmin && (
+                  <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="text-center">
+                      <div className="text-4xl mb-4">🏢</div>
+                      <h3 className="text-xl font-semibold text-gray-900 mb-2">Marka Yönetimi</h3>
+                      <p className="text-gray-600 mb-4">Marka ayarlarını düzenleyin</p>
+                      <Button asChild className="w-full">
+                        <Link href="/brands">Markaları Yönet</Link>
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
 
             </div>
           </div>

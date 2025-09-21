@@ -11,6 +11,7 @@ const config: Config = {
   safelist: [
     // Product card gradient backgrounds
     'bg-gradient-to-br',
+    // Existing gradients
     'from-orange-100',
     'via-yellow-50', 
     'to-orange-200',
@@ -20,6 +21,24 @@ const config: Config = {
     'from-emerald-100',
     'via-teal-50',
     'to-cyan-200',
+    // New gradient colors
+    'from-red-500',
+    'to-indigo-800',
+    'from-purple-500', 
+    'to-cyan-400',
+    'from-lime-400',
+    'to-yellow-100',
+    'from-green-400',
+    'to-blue-700',
+    'from-fuchsia-400',
+    'to-yellow-300',
+    'from-green-500',
+    'to-yellow-400',
+    'from-sky-400',
+    'to-white',
+    'from-indigo-100',
+    'via-purple-50',
+    'to-indigo-200',
     // Other combinations
     'bg-gray-50'
   ],

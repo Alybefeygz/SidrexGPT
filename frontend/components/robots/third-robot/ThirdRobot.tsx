@@ -292,9 +292,8 @@ export default function ThirdRobot({ onChatToggle, isOtherChatOpen, isFloating =
             <div className="robot-face-third">
               {/* Third robot eyes */}
               <div className="robot-third-eyes"></div>
-              {/* Third robot hover eyes - circular eyes that appear on hover */}
-              <div className="robot-third-hover-eyes left"></div>
-              <div className="robot-third-hover-eyes right"></div>
+              {/* Third robot hover eyes */}
+              <div className="robot-third-hover-eyes"></div>
               {/* Third robot mouth */}
               <div className="robot-third-mouth"></div>
             </div>

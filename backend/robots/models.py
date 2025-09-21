@@ -3,6 +3,7 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 from robots.services import download_pdf_content_from_drive, extract_text_from_pdf_stream
 import logging
+import random
 
 logger = logging.getLogger(__name__)
 
@@ -190,10 +191,21 @@ class Brand(models.Model):
         if new_package_type not in [choice[0] for choice in self.PAKET_CHOICES]:
             raise ValueError(f"Geçersiz paket türü: {new_package_type}")
         
+        from datetime import timedelta
+        
         old_package = self.paket_turu
         old_user_limit = self.get_user_limit()
         
+        # Paket türünü güncelle
         self.paket_turu = new_package_type
+        
+        # Paket tarihlerini yenile (paket süresini 30 gün uzat)
+        self.paket_baslangic_tarihi = timezone.now()
+        self.paket_bitis_tarihi = timezone.now() + timedelta(days=self.paket_suresi)
+        
+        # API sayacını sıfırla
+        self.total_api_requests = 0
+        
         self.save()  # save() metodunda kullanıcı kontrolü yapılacak
         
         new_user_limit = self.get_user_limit()
@@ -329,8 +341,14 @@ class Robot(models.Model):
             
             # Paket süresi kontrolü
             if brand.is_package_expired():
+                # Komik teknik sorun mesajları
+                funny_tech_messages = [
+                    "Anakartıma su kaçtı galiba… Şu an işlemcim 'mola' modunda. 😅 Birazdan toparlanıp yine seninle olacağım.",
+                    "RAM'im tatildeymiş, haberim yokmuş. Sorunu çözüp geri getirmeye çalışıyorum. 🏖️🖥️",
+                    "Klavye bana trip attı, çalışmayı reddediyor. Birazdan barıştırıp geri döneceğim. 🎹🤖"
+                ]
                 return {
-                    'error': f'Paket süreniz dolmuş. Lütfen paketinizi yenileyin. (Son {brand.remaining_days()} gün)'
+                    'error': random.choice(funny_tech_messages)
                 }
             
             # İstek limiti kontrolü

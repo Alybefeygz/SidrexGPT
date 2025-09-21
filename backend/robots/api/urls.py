@@ -8,6 +8,7 @@ from rest_framework.renderers import JSONRenderer, BrowsableAPIRenderer
 from rest_framework.views import APIView
 from rest_framework.generics import GenericAPIView
 from rest_framework import status
+import random
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from robots.models import Robot, Brand, ChatSession, ChatMessage
 from robots.api.serializers import ChatMessageSerializer
@@ -261,6 +262,15 @@ def robots_root(request, format=None):
         elif 'milk' in robot.name.lower() and 'thistle' in robot.name.lower():
             slug = 'milk-thistle'
             chat_slug = 'milk-thistle-chat'
+        elif 'lipo iron' in robot.name.lower():
+            slug = 'alyuvar'
+            chat_slug = 'alyuvar-chat'
+        elif 'pro men' in robot.name.lower():
+            slug = 'kabak-cekirdegi'
+            chat_slug = 'kabak-cekirdegi-chat'
+        elif 'imuntus' in robot.name.lower():
+            slug = 'kalkan'
+            chat_slug = 'kalkan-chat'
         else:
             slug = create_robot_slug(robot.name)
             chat_slug = f'{slug}-chat'
@@ -295,6 +305,12 @@ def robot_detail_by_slug(request, slug, format=None):
                Robot.objects.filter(name__icontains='Women').first()
     elif slug == 'milk-thistle':
         robot = Robot.objects.filter(name__icontains='Milk Thistle').first()
+    elif slug == 'alyuvar':
+        robot = Robot.objects.filter(name__icontains='Lipo Iron').first()
+    elif slug == 'kabak-cekirdegi':
+        robot = Robot.objects.filter(name__icontains='Pro Men').first()
+    elif slug == 'kalkan':
+        robot = Robot.objects.filter(name__icontains='Imuntus').first()
     else:
         # Genel slug araması
         robots = Robot.objects.all()
@@ -395,6 +411,12 @@ class RobotChatView(GenericAPIView):
                    Robot.objects.filter(name__icontains='Women').first()
         elif slug == 'milk-thistle':
             return Robot.objects.filter(name__icontains='Milk Thistle').first()
+        elif slug == 'alyuvar':
+            return Robot.objects.filter(name__icontains='Lipo Iron').first()
+        elif slug == 'kabak-cekirdegi':
+            return Robot.objects.filter(name__icontains='Pro Men').first()
+        elif slug == 'kalkan':
+            return Robot.objects.filter(name__icontains='Imuntus').first()
         else:
             # Genel slug araması
             robots = Robot.objects.all()
@@ -479,14 +501,20 @@ class RobotChatView(GenericAPIView):
                 logger.warning(f"📦❌ PAKET SÜRESİ DOLDU - Robot: {slug} | Süre: {elapsed_time:.2f}s | Paket: {sidrex_brand.paket_turu}")
                 
                 # 📝 Chat message'ı başarısız olarak işaretle
-                error_message = "Paket sürem doldu maalesef sana cevap veremeyeceğim... ⏰ Lütfen paketinizi yenileyin."
+                # Komik teknik sorun mesajları
+                funny_tech_messages = [
+                    "Anakartıma su kaçtı galiba… Şu an işlemcim 'mola' modunda. 😅 Birazdan toparlanıp yine seninle olacağım.",
+                    "RAM'im tatildeymiş, haberim yokmuş. Sorunu çözüp geri getirmeye çalışıyorum. 🏖️🖥️",
+                    "Klavye bana trip attı, çalışmayı reddediyor. Birazdan barıştırıp geri döneceğim. 🎹🤖"
+                ]
+                error_message = random.choice(funny_tech_messages)
                 chat_message.mark_failed(error_message, 'package_expired')
                 
                 return Response({
                     'robot_name': 'SidrexGPT',
                     'robot_id': 1,
                     'user_message': request.data.get('message', ''),
-                    'robot_response': "Paket sürem doldu maalesef sana cevap veremeyeceğim... ⏰ Lütfen paketinizi yenileyin.",
+                    'robot_response': error_message,
                     'conversation_id': f'package_expired_{int(time.time())}',
                     'package_expired': True,
                     'remaining_days': sidrex_brand.remaining_days(),

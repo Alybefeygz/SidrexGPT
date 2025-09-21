@@ -201,9 +201,8 @@ export default function FourthRobot({ onChatToggle, isOtherChatOpen, messages: p
             <div className="robot-ear-fourth robot-ear-left"></div>
             <div className="robot-ear-fourth robot-ear-right"></div>
             <div className="robot-face-fourth">
-              {/* Fourth robot normal eyes - visible in normal state, similar to third robot hover eyes */}
-              <div className="robot-fourth-normal-eyes left"></div>
-              <div className="robot-fourth-normal-eyes right"></div>
+              {/* Fourth robot eyes - visible in normal state */}
+              <div className="robot-fourth-eyes"></div>
               {/* Fourth robot sleepy eyes - visible on hover */}
               <div className="robot-fourth-sleepy-eyes"></div>
               {/* Fourth robot hover eyes - circular eyes that appear on hover */}

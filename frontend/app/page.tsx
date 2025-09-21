@@ -11,6 +11,44 @@ import { Navbar } from "@/components/Navbar"
 import FirstRobot from "@/components/robots/first-robot/FirstRobot"
 import { useProducts } from "@/hooks/use-products"
 
+// Renk kodları mapping'i
+const colorMappings: Record<string, string> = {
+  // Mevcut açık renkler
+  'bg-gradient-to-br from-orange-100 via-yellow-50 to-orange-200': 'linear-gradient(to bottom right, #fed7aa, #fefce8, #fed7aa)',
+  'bg-gradient-to-br from-blue-100 via-indigo-50 to-purple-200': 'linear-gradient(to bottom right, #dbeafe, #eef2ff, #e9d5ff)',
+  
+  // Yeni açık gradient renkler
+  'bg-gradient-to-br from-red-100 via-pink-50 to-indigo-200': 'linear-gradient(to bottom right, #fee2e2, #fdf2f8, #c7d2fe)',
+  'bg-gradient-to-br from-purple-100 via-violet-50 to-cyan-200': 'linear-gradient(to bottom right, #f3e8ff, #f5f3ff, #a5f3fc)',
+  'bg-gradient-to-br from-lime-100 via-yellow-50 to-amber-200': 'linear-gradient(to bottom right, #ecfccb, #fefce8, #fde68a)',
+  'bg-gradient-to-br from-green-100 via-emerald-50 to-blue-200': 'linear-gradient(to bottom right, #dcfce7, #ecfdf5, #dbeafe)',
+  'bg-gradient-to-br from-fuchsia-100 via-pink-50 to-yellow-200': 'linear-gradient(to bottom right, #fae8ff, #fdf2f8, #fef08a)',
+  'bg-gradient-to-br from-green-100 via-lime-50 to-yellow-200': 'linear-gradient(to bottom right, #dcfce7, #f7fee7, #fef08a)',
+  'bg-gradient-to-br from-sky-100 via-blue-50 to-slate-100': 'linear-gradient(to bottom right, #e0f2fe, #eff6ff, #f1f5f9)',
+  
+  // Eski renkler (fallback)
+  'bg-gradient-to-br from-red-500 to-indigo-800': 'linear-gradient(to bottom right, #ef4444, #3730a3)',
+  'bg-gradient-to-br from-purple-500 to-cyan-400': 'linear-gradient(to bottom right, #a855f7, #22d3ee)',
+  'bg-gradient-to-br from-lime-400 to-yellow-100': 'linear-gradient(to bottom right, #a3e635, #fef3c7)',
+  'bg-gradient-to-br from-green-400 to-blue-700': 'linear-gradient(to bottom right, #4ade80, #1d4ed8)',
+  'bg-gradient-to-br from-fuchsia-400 to-yellow-300': 'linear-gradient(to bottom right, #e879f9, #fde047)',
+  'bg-gradient-to-br from-green-500 to-yellow-400': 'linear-gradient(to bottom right, #22c55e, #facc15)',
+  'bg-gradient-to-br from-sky-400 to-white': 'linear-gradient(to bottom right, #38bdf8, #ffffff)',
+  'bg-gradient-to-br from-indigo-100 via-purple-50 to-indigo-200': 'linear-gradient(to bottom right, #e0e7ff, #faf5ff, #c7d2fe)',
+  'bg-gray-50': '#f9fafb'
+}
+
+// Arka plan rengi stil dönüştürücü
+const getBackgroundStyle = (bgColor: string): React.CSSProperties => {
+  const mappedColor = colorMappings[bgColor]
+  if (mappedColor) {
+    return mappedColor.startsWith('linear-gradient') 
+      ? { background: mappedColor }
+      : { backgroundColor: mappedColor }
+  }
+  return {}
+}
+
 export default function HomePage() {
   const [currentSlide, setCurrentSlide] = useState(0)
   const [activeChatRobot, setActiveChatRobot] = useState<boolean>(false)
@@ -122,7 +160,8 @@ export default function HomePage() {
             {products.map((product) => (
               <Link key={product.id} href={`/product/${product.slug}`}>
                 <Card
-                  className={`${product.bg_color} border-0 shadow-lg hover:shadow-xl transition-shadow duration-300 cursor-pointer`}
+                  className="border-0 shadow-lg hover:shadow-xl transition-shadow duration-300 cursor-pointer"
+                  style={getBackgroundStyle(product.bg_color)}
                 >
                   <CardContent className="p-6">
                     {/* Square Product Display */}

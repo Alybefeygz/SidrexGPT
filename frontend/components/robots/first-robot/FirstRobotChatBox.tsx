@@ -97,7 +97,7 @@ export default function FirstRobotChatBox({
   return (
     <div
       className={`z-50 bg-white rounded-lg shadow-xl border border-gray-200 flex flex-col animate-in slide-in-from-bottom-2 duration-300 ${
-        isFloating ? "fixed bottom-4 right-32" : "absolute"
+        isFloating ? "fixed bottom-4" : "absolute"
       }`}
       style={
         !isFloating
@@ -110,6 +110,7 @@ export default function FirstRobotChatBox({
           : {
               width: `${dimensions.width}px`,
               height: `${dimensions.height}px`,
+              right: '150px',
             }
       }
     >

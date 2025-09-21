@@ -11,6 +11,12 @@ import SecondRobot from "@/components/robots/second-robot/SecondRobot"
 import ThirdRobot from "@/components/robots/third-robot/ThirdRobot"
 import FourthRobot from "@/components/robots/fourth-robot/FourthRobot"
 import FifthRobot from "@/components/robots/fifth-robot/FifthRobot"
+import SixthRobot from "@/components/robots/sixth-robot/SixthRobot"
+import SeventhRobot from "@/components/robots/seventh-robot/SeventhRobot"
+import EighthRobot from "@/components/robots/eighth-robot/EighthRobot"
+import NinthRobot from "@/components/robots/ninth-robot/NinthRobot"
+import TenthRobot from "@/components/robots/tenth-robot/TenthRobot"
+import EleventhRobot from "@/components/robots/eleventh-robot/EleventhRobot"
 import PDFUploader from "@/components/PDFUploader"
 
 // Product data - in a real app this would come from a database
@@ -774,7 +780,7 @@ export default function ProductPage({ params }: ProductPageProps) {
 
       {/* Floating Second Robot for mag4ever and related products */}
       {(slug === 'mag4ever' || product.name === 'Mag4Ever') && (
-        <div className="fixed bottom-6 right-6 z-50">
+        <div className="fixed bottom-6 z-50" style={{ right: '45px' }}>
           <SecondRobot
             onChatToggle={handleChatToggle}
             isOtherChatOpen={activeChatRobot !== null && activeChatRobot !== "second"}
@@ -785,7 +791,7 @@ export default function ProductPage({ params }: ProductPageProps) {
 
       {/* Floating Third Robot for imuntus-kids and related products */}
       {(slug === 'imuntus-kids' || product.name === 'Imuntus Kids') && (
-        <div className="fixed bottom-6 right-6 z-50">
+        <div className="fixed bottom-6 z-50" style={{ right: '45px' }}>
           <ThirdRobot
             onChatToggle={handleChatToggle}
             isOtherChatOpen={activeChatRobot !== null && activeChatRobot !== "third"}
@@ -796,7 +802,7 @@ export default function ProductPage({ params }: ProductPageProps) {
 
       {/* Floating Fourth Robot for zzen and related products */}
       {(slug === 'zzen' || product.name === 'Zzen') && (
-        <div className="fixed bottom-6 right-6 z-50">
+        <div className="fixed bottom-6 z-50" style={{ right: '45px' }}>
           <FourthRobot
             onChatToggle={handleChatToggle}
             isOtherChatOpen={activeChatRobot !== null && activeChatRobot !== "fourth"}
@@ -807,10 +813,76 @@ export default function ProductPage({ params }: ProductPageProps) {
 
       {/* Floating Fifth Robot for milk-thistle-complex and related products */}
       {(slug === 'milk-thistle-complex' || product.name === 'Milk Thistle Complex') && (
-        <div className="fixed bottom-6 right-6 z-50">
+        <div className="fixed bottom-6 z-50" style={{ right: '65px' }}>
           <FifthRobot
             onChatToggle={handleChatToggle}
             isOtherChatOpen={activeChatRobot !== null && activeChatRobot !== "fifth"}
+            isFloating={true}
+          />
+        </div>
+      )}
+
+      {/* Floating Sixth Robot for repro-womens-once-daily and related products */}
+      {(slug === 'repro-womens-once-daily' || product.name === 'Repro Women\'s Once Daily') && (
+        <div className="fixed bottom-6 z-50" style={{ right: '45px' }}>
+          <SixthRobot
+            onChatToggle={handleChatToggle}
+            isOtherChatOpen={activeChatRobot !== null && activeChatRobot !== "sixth"}
+            isFloating={true}
+          />
+        </div>
+      )}
+
+      {/* Floating Seventh Robot for slm-x and related products */}
+      {(slug === 'slm-x' || product.name === 'Slm-X') && (
+        <div className="fixed bottom-6 z-50" style={{ right: '45px' }}>
+          <SeventhRobot
+            onChatToggle={handleChatToggle}
+            isOtherChatOpen={activeChatRobot !== null && activeChatRobot !== "seventh"}
+            isFloating={true}
+          />
+        </div>
+      )}
+
+      {/* Floating Eighth Robot for olivia and related products */}
+      {(slug === 'olivia' || product.name === 'Olivia') && (
+        <div className="fixed bottom-6 z-50" style={{ right: '45px' }}>
+          <EighthRobot
+            onChatToggle={handleChatToggle}
+            isOtherChatOpen={activeChatRobot !== null && activeChatRobot !== "eighth"}
+            isFloating={true}
+          />
+        </div>
+      )}
+
+      {/* Floating Ninth Robot for lipo-iron-complex and related products */}
+      {(slug === 'lipo-iron-complex' || product.name === 'Lipo Iron Complex') && (
+        <div className="fixed bottom-6 z-50" style={{ right: '45px' }}>
+          <NinthRobot
+            onChatToggle={handleChatToggle}
+            isOtherChatOpen={activeChatRobot !== null && activeChatRobot !== "ninth"}
+            isFloating={true}
+          />
+        </div>
+      )}
+
+      {/* Floating Tenth Robot for pro-mens-once-daily and related products */}
+      {(slug === 'pro-mens-once-daily' || product.name === 'Pro Men\'s Once Daily') && (
+        <div className="fixed bottom-6 z-50" style={{ right: '45px' }}>
+          <TenthRobot
+            onChatToggle={handleChatToggle}
+            isOtherChatOpen={activeChatRobot !== null && activeChatRobot !== "tenth"}
+            isFloating={true}
+          />
+        </div>
+      )}
+
+      {/* Floating Eleventh Robot for imuntus and related products */}
+      {(slug === 'imuntus' || product.name === 'Imuntus') && (
+        <div className="fixed bottom-6 z-50" style={{ right: '45px' }}>
+          <EleventhRobot
+            onChatToggle={handleChatToggle}
+            isOtherChatOpen={activeChatRobot !== null && activeChatRobot !== "eleventh"}
             isFloating={true}
           />
         </div>

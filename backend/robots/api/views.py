@@ -493,7 +493,16 @@ class BrandViewSet(viewsets.ModelViewSet):
     """Marka yönetimi - Görüntüleme için markası olan kullanıcılar, düzenleme için admin"""
     queryset = Brand.objects.all()
     serializer_class = None  # Serializer'ı aşağıda oluşturacağız
-    permission_classes = [IsAuthenticated, CanAccessBrandData]  # Login olan ve marka erişimi olan kullanıcılar erişebilir
+    
+    def get_permissions(self):
+        """DEBUG modda izin kontrolünü esnetle"""
+        from django.conf import settings
+        if settings.DEBUG:
+            # Development modda herkes erişebilir
+            return []
+        else:
+            # Production modda normal permission kontrolü
+            return [IsAuthenticated(), CanAccessBrandData()]
     
     # Sadece okuma ve güncelleme işlemine izin ver - CREATE işlemini engelle
     http_method_names = ['get', 'put', 'patch', 'post', 'head', 'options']
@@ -514,7 +523,14 @@ class BrandViewSet(viewsets.ModelViewSet):
         """
         Admin kullanıcılar tüm markaları görebilir
         Normal kullanıcılar sadece kendi markalarını görebilir
+        DEBUG modda herkes tüm markaları görebilir
         """
+        from django.conf import settings
+        
+        # DEBUG modda tüm markaları göster
+        if settings.DEBUG:
+            return Brand.objects.all()
+        
         # Admin kullanıcılar tüm markaları görebilir
         if self.request.user.is_superuser or self.request.user.is_staff:
             return Brand.objects.all()

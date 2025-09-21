@@ -292,15 +292,8 @@ const SecondRobot = memo(function SecondRobot({ onChatToggle, isOtherChatOpen, i
             <div className="robot-ear-second robot-ear-left"></div>
             <div className="robot-ear-second robot-ear-right"></div>
             <div className="robot-face-second">
-              <div className="robot-eye-semicircle-second left"></div>
-              <div className="robot-eye-semicircle-second right"></div>
-              <div className="robot-eye-oval left"></div>
-              <div className="robot-eye-oval right"></div>
-              <div className="robot-mouth-oval"></div>
-              <div className="robot-mouth-overlay"></div>
-              <div className="robot-eye-white left"></div>
-              <div className="robot-eye-white right"></div>
-              <div className="robot-smile-white"></div>
+              <div className="robot-second-normal-eyes"></div>
+              <div className="robot-second-hover-eyes"></div>
             </div>
           </div>
         </div>

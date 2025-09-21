@@ -289,6 +289,10 @@ CSRF_TRUSTED_ORIGINS = sorted(list(set(CSRF_TRUSTED_ORIGINS)))
 CSRF_COOKIE_HTTPONLY = False
 SESSION_COOKIE_HTTPONLY = True # Oturum çerezini daha güvenli yapalım
 
+# Development için CSRF'yi bazı endpoint'lerde esnetle
+if DEBUG:
+    CSRF_FAILURE_VIEW = 'django.views.csrf.csrf_failure'
+
 # CORS Ayarları
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_METHODS = ['DELETE', 'GET', 'OPTIONS', 'PATCH', 'POST', 'PUT']
@@ -315,7 +319,7 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.SessionAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
+        'rest_framework.permissions.AllowAny' if DEBUG else 'rest_framework.permissions.IsAuthenticated',
     ],
     'DEFAULT_THROTTLE_RATES': {
         'chat': '5/minute',  # Chat istekleri için rate limiting

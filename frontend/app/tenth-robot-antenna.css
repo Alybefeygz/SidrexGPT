@@ -1,0 +1,127 @@
+/* Tenth Robot Antenna - Ninth Robot'dan kopyalandı */
+.robot-antenna-tenth {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 16.2px;
+  height: 32.4px;
+  background-image: url("/images/tenth-robot-anten.png");
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  z-index: 34;
+  transform-origin: bottom center;
+  opacity: 1;
+  transition: opacity 0.3s ease-in-out;
+  animation: antennaSwayTenthWide 4s ease-in-out infinite;
+}
+
+/* Tenth Robot Hover Antenna - Normal anten ile aynı boyut ve konum */
+.robot-antenna-tenth-hover {
+  position: absolute;
+  top: 9px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 16.2px;
+  height: 32.4px;
+  background-image: url("/images/tenth-robot-hover-anten.png");
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  z-index: 34;
+  transform-origin: bottom center;
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+}
+
+/* Tenth Robot Head - Inline style'dan CSS class'a çevrildi */
+.robot-head-tenth {
+  position: relative;
+  width: 32px;
+  height: 26px;
+  background: #08966F;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 4px;
+  z-index: 35;
+}
+
+/* Tenth Robot Antenna Hover States */
+/* Normal anten - hover/active'de gizle */
+button:has(.robot-head-tenth):hover .robot-antenna-tenth,
+button:has(.robot-head-tenth).tenth-robot-active .robot-antenna-tenth {
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+}
+
+button:has(.robot-head-tenth):not(:hover):not(.tenth-robot-active) .robot-antenna-tenth {
+  opacity: 1;
+  transition: opacity 0.3s ease-in-out;
+}
+
+/* Hover anten - hover/active'de göster ve animasyon uygula */
+button:has(.robot-head-tenth):hover .robot-antenna-tenth-hover,
+button:has(.robot-head-tenth).tenth-robot-active .robot-antenna-tenth-hover {
+  opacity: 1;
+  animation: antennaTenthDampening 2s ease-out forwards;
+  transform: translateX(-50%) scale(1.05);
+  transition: opacity 0.3s ease-in-out;
+}
+
+button:has(.robot-head-tenth):not(:hover):not(.tenth-robot-active) .robot-antenna-tenth-hover {
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+}
+
+/* Tenth Robot Antenna Sway Animation */
+@keyframes antennaSwayTenthWide {
+  0% {
+    transform: translateX(-50%) rotate(-20deg);
+  }
+  50% {
+    transform: translateX(-50%) rotate(20deg);
+  }
+  100% {
+    transform: translateX(-50%) rotate(-20deg);
+  }
+}
+
+/* Tenth Robot Hover Antenna Dampening Animation */
+@keyframes antennaTenthDampening {
+  0% {
+    transform: translateX(-50%) scale(1.05) rotate(15deg);
+  }
+  10% {
+    transform: translateX(-50%) scale(1.05) rotate(-10deg);
+  }
+  20% {
+    transform: translateX(-50%) scale(1.05) rotate(6deg);
+  }
+  30% {
+    transform: translateX(-50%) scale(1.05) rotate(-4deg);
+  }
+  40% {
+    transform: translateX(-50%) scale(1.05) rotate(2deg);
+  }
+  50% {
+    transform: translateX(-50%) scale(1.05) rotate(-1deg);
+  }
+  55% {
+    transform: translateX(-50%) scale(1.05) rotate(-1deg);
+  }
+  60% {
+    transform: translateX(-50%) scale(1.05) rotate(0.5deg);
+  }
+  65% {
+    transform: translateX(-50%) scale(1.05) rotate(-0.5deg);
+  }
+  70% {
+    transform: translateX(-50%) scale(1.05) rotate(0deg);
+  }
+  100% {
+    transform: translateX(-50%) scale(1.05) rotate(0deg);
+  }
+}
